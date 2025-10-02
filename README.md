@@ -66,3 +66,14 @@ This module now supports Companions HTTP API, providing endpoints that can be us
 
 
 Older patch notes available in [docs/patch_notes.md](./docs/patch_notes.md)
+
+## Benchmark (with optional Rust/WASM)
+
+1. Install dependencies
+   - `yarn install --frozen-lockfile`
+2. (Optional) Build Rust/WASM parser
+   - Requires Rust toolchain and wasm-pack
+   - `wasm-pack build rust/vmix_xml --release --target nodejs --out-dir src/bench/wasm/pkg`
+3. Run benchmark
+   - `yarn bench`
+   - `BENCH_ITERS=500 BENCH_XML=bench-sample.xml yarn bench`

@@ -11,7 +11,9 @@
 		"lint": "eslint --fix",
 		"lint:test": "eslint",
 		"test": "jest",
-		"bench": "yarn build && node dist/bench/benchmark.js"
+		"bench": "yarn build && node dist/bench/benchmark.js",
+		"bench:wasm:build": "cd rust/vmix_xml && wasm-pack build --release --target nodejs --out-dir ../../src/bench/wasm/pkg",
+		"bench:rust": "yarn bench:wasm:build && yarn bench"
 	},
 	"repository": {
 		"type": "git",

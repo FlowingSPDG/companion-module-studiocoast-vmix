@@ -68,7 +68,7 @@ async function main() {
     } catch {
       // try source wasm-pack output path relative to dist
       const path = require('path')
-      const p = path.join(__dirname, '../../src/bench/wasm/pkg/vmix_xml.js')
+      const p = path.join(process.cwd(), 'src/bench/wasm/pkg/vmix_xml.js')
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       wasm = require(p)
     }
