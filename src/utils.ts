@@ -21,6 +21,7 @@ export interface Options {
   mixVariable: EnforceDefault<CompanionInputFieldTextInput, string>
   audioBus: EnforceDefault<CompanionInputFieldDropdown, string>
   audioBusMaster: EnforceDefault<CompanionInputFieldDropdown, string>
+  audioBusMasterHeadphones: EnforceDefault<CompanionInputFieldDropdown, string>
   foregroundColor: EnforceDefault<CompanionInputFieldColor, number>
   foregroundColorBlack: EnforceDefault<CompanionInputFieldColor, number>
   backgroundColorPreview: EnforceDefault<CompanionInputFieldColor, number>
@@ -35,12 +36,31 @@ export interface Options {
 
 export type AudioBusOption = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'Selected'
 export type AudioBusMasterOption = 'Master' | 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'Selected'
+export type AudioBusMasterHeadphonesOption = 'Master' | 'Headphones' | 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'Selected'
 export type MixOptionEntry = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | -1 | -2
 export type EmptyOptions = Record<string, never>
 
 // Static Variables
 export const AUDIOBUSSES = ['A', 'B', 'C', 'D', 'E', 'F', 'G'] as const
 export const AUDIOBUSSESMASTER = ['Master', 'Headphones', 'A', 'B', 'C', 'D', 'E', 'F', 'G'] as const
+
+export const TITLEANIMATIONPAGE = [
+  'TransitionIn',
+  'TransitionOut',
+  'Page1',
+  'Page2',
+  'Page3',
+  'Page4',
+  'Page5',
+  'Page6',
+  'Page7',
+  'Page8',
+  'Page9',
+  'Page10',
+  'Continuous',
+  'DataChangeIn',
+  'DataChangeOut',
+]
 
 export const TRANSITIONS = [
   'Cut',
@@ -62,7 +82,7 @@ export const TRANSITIONS = [
   'VerticalSlideReverse',
   'BarnDoor',
   'RollerDoor',
-	'AlphaFade',
+  'AlphaFade',
 ] as const
 
 export const calcDuration = (input: Input): { ms: string; ss: string; ssms: string; mmss: string; mmssms: string } | null => {
@@ -130,7 +150,7 @@ export const options: Options = {
     id: 'input',
     default: '1',
     tooltip: 'Number, Name, or GUID',
-    useVariables: true,
+    useVariables: { local: true },
   },
 
   mixSelect: {
@@ -167,7 +187,7 @@ export const options: Options = {
     default: '1',
     tooltip: '',
     isVisible: (options) => options.mix === -2,
-    useVariables: true,
+    useVariables: { local: true },
   },
 
   audioBus: {
@@ -184,6 +204,14 @@ export const options: Options = {
     id: 'value',
     default: 'Master',
     choices: ['Master', ...AUDIOBUSSES, 'Selected'].map((id) => ({ id, label: id })),
+  },
+
+  audioBusMasterHeadphones: {
+    type: 'dropdown',
+    label: 'Bus',
+    id: 'value',
+    default: 'Master',
+    choices: [...AUDIOBUSSESMASTER, 'Selected'].map((id) => ({ id, label: id })),
   },
 
   foregroundColor: {
@@ -226,7 +254,7 @@ export const options: Options = {
     label: 'Selected Index',
     id: 'selectedIndex',
     default: '1',
-    useVariables: true,
+    useVariables: { local: true },
   },
 
   comparison: {

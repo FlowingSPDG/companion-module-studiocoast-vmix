@@ -1,5 +1,5 @@
 import type { VMixAction, ActionCallback, SendBasicCommand } from './actions'
-import { options } from '../utils'
+import { TITLEANIMATIONPAGE, options } from '../utils'
 import type VMixInstance from '../index'
 
 type ControlCountdownOptions = {
@@ -93,6 +93,8 @@ type TitleBeginAnimationOptions = {
     | 'Continuous'
     | 'DataChangeIn'
     | 'DataChangeOut'
+    | 'variable'
+  variable: string
 }
 
 type ControlCountdownCallback = ActionCallback<'controlCountdown', ControlCountdownOptions>
@@ -163,7 +165,7 @@ export const vMixTitleActions = (instance: VMixInstance, sendBasicCommand: SendB
           label: 'Layer',
           id: 'selectedIndex',
           default: '0',
-          useVariables: true,
+          useVariables: { local: true },
         },
       ],
       callback: async (action, context) => {
@@ -189,7 +191,7 @@ export const vMixTitleActions = (instance: VMixInstance, sendBasicCommand: SendB
           label: 'Time (00:00:00)',
           id: 'value',
           default: '00:10:00',
-          useVariables: true,
+          useVariables: { local: true },
         },
         options.input,
         {
@@ -197,7 +199,7 @@ export const vMixTitleActions = (instance: VMixInstance, sendBasicCommand: SendB
           label: 'Layer',
           id: 'selectedIndex',
           default: '0',
-          useVariables: true,
+          useVariables: { local: true },
         },
       ],
       callback: async (action, context) => {
@@ -224,7 +226,7 @@ export const vMixTitleActions = (instance: VMixInstance, sendBasicCommand: SendB
           label: 'Time (00:00:00)',
           id: 'value',
           default: '00:10:00',
-          useVariables: true,
+          useVariables: { local: true },
         },
         options.input,
         {
@@ -232,7 +234,7 @@ export const vMixTitleActions = (instance: VMixInstance, sendBasicCommand: SendB
           label: 'Layer',
           id: 'selectedIndex',
           default: '0',
-          useVariables: true,
+          useVariables: { local: true },
         },
       ],
       callback: async (action, context) => {
@@ -259,7 +261,7 @@ export const vMixTitleActions = (instance: VMixInstance, sendBasicCommand: SendB
           label: 'Seconds',
           id: 'value',
           default: '10',
-          useVariables: true,
+          useVariables: { local: true },
         },
         options.input,
         {
@@ -267,7 +269,7 @@ export const vMixTitleActions = (instance: VMixInstance, sendBasicCommand: SendB
           label: 'Layer',
           id: 'selectedIndex',
           default: '0',
-          useVariables: true,
+          useVariables: { local: true },
         },
       ],
       callback: async (action, context) => {
@@ -300,7 +302,7 @@ export const vMixTitleActions = (instance: VMixInstance, sendBasicCommand: SendB
           label: 'Layer',
           id: 'selectedIndex',
           default: '0',
-          useVariables: true,
+          useVariables: { local: true },
         },
         options.adjustment,
         {
@@ -308,7 +310,7 @@ export const vMixTitleActions = (instance: VMixInstance, sendBasicCommand: SendB
           label: 'Value',
           id: 'value',
           default: '',
-          useVariables: true,
+          useVariables: { local: true },
         },
         {
           type: 'checkbox',
@@ -356,14 +358,14 @@ export const vMixTitleActions = (instance: VMixInstance, sendBasicCommand: SendB
           tooltip: '(Indexed from 0 or by name)',
           id: 'selectedIndex',
           default: '0',
-          useVariables: true,
+          useVariables: { local: true },
         },
         {
           type: 'textinput',
           label: 'Color (#RRGGBB)',
           id: 'value',
           default: '',
-          useVariables: true,
+          useVariables: { local: true },
         },
       ],
       callback: async (action, context) => {
@@ -390,7 +392,7 @@ export const vMixTitleActions = (instance: VMixInstance, sendBasicCommand: SendB
           tooltip: '(Indexed from 0 or by name)',
           id: 'selectedIndex',
           default: '0',
-          useVariables: true,
+          useVariables: { local: true },
         },
         {
           type: 'dropdown',
@@ -430,14 +432,14 @@ export const vMixTitleActions = (instance: VMixInstance, sendBasicCommand: SendB
           label: 'Layer',
           id: 'selectedIndex',
           default: '0',
-          useVariables: true,
+          useVariables: { local: true },
         },
         {
           type: 'textinput',
           label: 'Value (#RRGGBB or #AARRGGBB)',
           id: 'value',
           default: '',
-          useVariables: true,
+          useVariables: { local: true },
         },
       ],
       callback: async (action, context) => {
@@ -465,7 +467,7 @@ export const vMixTitleActions = (instance: VMixInstance, sendBasicCommand: SendB
           tooltip: 'Index starting from 0, or layer name',
           id: 'selectedIndex',
           default: '0',
-          useVariables: true,
+          useVariables: { local: true },
         },
         {
           type: 'textinput',
@@ -473,7 +475,7 @@ export const vMixTitleActions = (instance: VMixInstance, sendBasicCommand: SendB
           id: 'value',
           tooltip: 'Filename or URL',
           default: '',
-          useVariables: true,
+          useVariables: { local: true },
         },
         {
           type: 'checkbox',
@@ -506,7 +508,7 @@ export const vMixTitleActions = (instance: VMixInstance, sendBasicCommand: SendB
           tooltip: 'Index starting from 0, or layer name',
           id: 'selectedIndex',
           default: '0',
-          useVariables: true,
+          useVariables: { local: true },
         },
         {
           type: 'dropdown',
@@ -546,7 +548,7 @@ export const vMixTitleActions = (instance: VMixInstance, sendBasicCommand: SendB
           label: 'Preset Index',
           id: 'value',
           default: '0',
-          useVariables: true,
+          useVariables: { local: true },
         },
       ],
       callback: sendBasicCommand,
@@ -597,10 +599,34 @@ export const vMixTitleActions = (instance: VMixInstance, sendBasicCommand: SendB
             { id: 'Continuous', label: 'Continuous' },
             { id: 'DataChangeIn', label: 'Data Change In' },
             { id: 'DataChangeOut', label: 'Data Change Out' },
+            { id: 'variable', label: 'Use Variable' },
           ],
         },
+        {
+          type: 'textinput',
+          label: 'State Variable',
+          id: 'variable',
+          default: '',
+          tooltip: 'Must match one of the valid Animation Page options',
+          isVisibleExpression: `$(options:value) === 'variable'`,
+          useVariables: { local: true },
+        },
       ],
-      callback: sendBasicCommand,
+      callback: async (action, context) => {
+        const input = (await instance.parseOption(action.options.input, context))[instance.buttonShift.state]
+        let value: string = action.options.value
+
+        if (value === 'variable') {
+          value = (await instance.parseOption(action.options.variable, context))[instance.buttonShift.state]
+
+          if (!TITLEANIMATIONPAGE.includes(value)) {
+            instance.log('warn', `${value} is not a valid Title Animation`)
+            return
+          }
+        }
+
+        if (instance.tcp) return instance.tcp.sendCommand(`FUNCTION TitleBeginAnimation Input=${encodeURIComponent(input)}&Value=${value}`)
+      },
     },
   }
 }

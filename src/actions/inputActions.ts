@@ -10,6 +10,10 @@ interface PreviewInputOptions {
   mixVariable: string
 }
 
+interface GoOptions {
+  input: string
+}
+
 interface ResetInputOptions {
   input: string
 }
@@ -69,6 +73,7 @@ interface InputFrameDelayOptions {
 type PreviewInputCallback = ActionCallback<'previewInput', PreviewInputOptions>
 type PreviewInputNextCallback = ActionCallback<'previewInputNext', EmptyOptions>
 type PreviewInputPreviousCallback = ActionCallback<'previewInputPrevious', EmptyOptions>
+type GoCallback = ActionCallback<'go', GoOptions>
 type ResetInputCallback = ActionCallback<'resetInput', ResetInputOptions>
 type UndoCallback = ActionCallback<'undo', EmptyOptions>
 type InputEffectCallback = ActionCallback<'inputEffect', InputEffectOptions>
@@ -81,6 +86,7 @@ export interface InputActions {
   previewInput: VMixAction<PreviewInputCallback>
   previewInputNext: VMixAction<PreviewInputNextCallback>
   previewInputPrevious: VMixAction<PreviewInputPreviousCallback>
+  go: VMixAction<GoCallback>
   resetInput: VMixAction<ResetInputCallback>
   undo: VMixAction<UndoCallback>
   inputEffect: VMixAction<InputEffectCallback>
@@ -96,6 +102,7 @@ export type InputCallbacks =
   | PreviewInputCallback
   | PreviewInputNextCallback
   | PreviewInputPreviousCallback
+  | GoCallback
   | ResetInputCallback
   | UndoCallback
   | InputEffectCallback
@@ -124,6 +131,13 @@ export const vMixInputActions = (instance: VMixInstance, sendBasicCommand: SendB
       name: 'Input - Send Previous input to Preview',
       description: 'Send to Preview the previous Input',
       options: [],
+      callback: sendBasicCommand,
+    },
+
+    go: {
+      name: 'Input - GO Action',
+      description: 'Run the GO Action of a specified Input',
+      options: [options.input],
       callback: sendBasicCommand,
     },
 
@@ -206,7 +220,7 @@ export const vMixInputActions = (instance: VMixInstance, sendBasicCommand: SendB
           label: 'Strength 0 to 1',
           id: 'strength',
           default: '1',
-          useVariables: true,
+          useVariables: { local: true },
         },
       ],
       callback: async (action, context) => {
@@ -258,7 +272,7 @@ export const vMixInputActions = (instance: VMixInstance, sendBasicCommand: SendB
           label: 'Gain Value 0 to 2',
           id: 'gainValue',
           default: '1',
-          useVariables: true,
+          useVariables: { local: true },
           isVisible: (options) => {
             const setting = options.setting as string
             return setting.startsWith('SetCCGain')
@@ -269,7 +283,7 @@ export const vMixInputActions = (instance: VMixInstance, sendBasicCommand: SendB
           label: 'Gain Value -1 to 1',
           id: 'otherValue',
           default: '0',
-          useVariables: true,
+          useVariables: { local: true },
           isVisible: (options) => {
             const setting = options.setting as string
             return !setting.startsWith('SetCCGain')
@@ -358,7 +372,7 @@ export const vMixInputActions = (instance: VMixInstance, sendBasicCommand: SendB
           label: 'Zoom Value 0 to 5 (1 = 100%, 0.5 = 50%, 2 = 200%)',
           id: 'zoomValue',
           default: '1',
-          useVariables: true,
+          useVariables: { local: true },
           isVisible: (options) => {
             const setting = options.setting as string
             return setting === 'SetZoom'
@@ -369,7 +383,7 @@ export const vMixInputActions = (instance: VMixInstance, sendBasicCommand: SendB
           label: 'Crop (0 = No Crop, 1 = Full Crop) X1,Y1,X2,Y2',
           id: 'cropValue',
           default: '0,0,1,1',
-          useVariables: true,
+          useVariables: { local: true },
           isVisible: (options) => {
             const setting = options.setting as string
             return setting === 'SetCrop'
@@ -380,7 +394,7 @@ export const vMixInputActions = (instance: VMixInstance, sendBasicCommand: SendB
           label: 'Crop (0 = No Crop, 1 = Full Crop)',
           id: 'cropValue2',
           default: '1',
-          useVariables: true,
+          useVariables: { local: true },
           isVisible: (options) => {
             const setting = options.setting as string
             return setting.startsWith('SetCropX') || setting.startsWith('SetCropY')
@@ -391,7 +405,7 @@ export const vMixInputActions = (instance: VMixInstance, sendBasicCommand: SendB
           label: 'Pan (0 = Centered, -2 = 100% to left, 2 = 100% to right)',
           id: 'panValue',
           default: '1',
-          useVariables: true,
+          useVariables: { local: true },
           isVisible: (options) => {
             const setting = options.setting as string
             return setting.startsWith('SetPan')
@@ -477,7 +491,7 @@ export const vMixInputActions = (instance: VMixInstance, sendBasicCommand: SendB
           label: 'Frames',
           id: 'value',
           default: '0',
-          useVariables: true,
+          useVariables: { local: true },
         },
       ],
       callback: async (action, context) => {

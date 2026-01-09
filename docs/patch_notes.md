@@ -1,11 +1,14 @@
 # Patch Notes
 
 **v4.2.0**
-- Added support for vMix 29 Beta
+- Added support for vMix 29
 - Actions:
-  - Updated `Overlay - Functions` to support 8 overlays
+  - Updated `Overlay - Functions` to support 8 overlays, and added the capability to select more than one mix.
   - Updated `Transition - Auto/Stinger Transition` to support 8 stingers
   - Updated `Transition - Transition Mix` and `Transition - Set Auto Transition Effect` to support the new AlphaFade transition
+  - Updated `Audio - Set Bus Volume` to include support for adjusting Headphones volume
+  - Updated `Title - Begin Animation Page` to support variables for animation selection
+  - Added `Input - GO Action` to start the GO action on an input
   - Added `Replay - Quad View` Action to Toggle, set On, or set Off, Quad View mode
   - Added `Replay - Set/Append Event Text` and `Replay - Clear Event Text` Actions for setting, appending, or clearing, text on an Replay Event
 - Feedbacks:
@@ -15,7 +18,10 @@
   - Added `output_X_omt` variables to show OMT status on outputs 1 to 4
   - Updated Overlay variables to support 8 overlays
   - Added `replay_quad_view` variable to show if Quad View mode is enabled
+  - Added `input_X_layer_Y_titleimage` and `input_X_layer_Y_titlecolor` variables for title inputs image and color values, similar to the titletext variable
+  - Added more support for Local Variables
 - Fixed `preset` variable not always updating
+- Fixed an issue with Transition feedback/variables not updating under certain conditions
 
 **v4.1.2**
 - Fixed an issue with Mix variables not correctly updating if the Preview or Program was set to none
