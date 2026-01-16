@@ -10,14 +10,20 @@ repository = "https://github.com/bitfocus/companion-module-studiocoast-vmix"
 crate-type = ["cdylib"]
 
 [dependencies]
-wasm-bindgen = { version = "0.2", features = ["serde-serialize"] }
+# WASM bindings for JavaScript interop
+wasm-bindgen = { version = "0.2" }
+# JavaScript bindings for direct JS object creation
+js-sys = "0.3"
+# Fast XML parser for parsing vMix XML state data
 quick-xml = { version = "0.37", features = ["serialize"] }
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-serde-wasm-bindgen = "0.6"
+# Use vmix-core directly (WASM compatible, contains from_str function)
+vmix-core = { version = "0.2.1" }
 
 [profile.release]
-opt-level = "z"
+opt-level = 3
 codegen-units = 1
 lto = true
 
+# WASM用の最適化設定（速度優先）
+[profile.release.package."*"]
+opt-level = 3

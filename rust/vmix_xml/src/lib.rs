@@ -1,167 +1,207 @@
+use vmix_core::models::Vmix;
 use wasm_bindgen::prelude::*;
-use quick_xml::events::Event;
-use quick_xml::Reader;
-use serde_json::{json, Value};
-use serde_wasm_bindgen::to_value as to_js_value;
+use js_sys::{Object, Array};
+use quick_xml::de::from_str;
+
+// Helper to wrap scalar values in arrays (xml2js format)
+fn wrap_in_array(val: &str) -> JsValue {
+    let arr = Array::new();
+    arr.push(&JsValue::from_str(val));
+    arr.into()
+}
+
+// Helper to convert input attributes to JS Object
+fn input_to_js(input: &vmix_core::models::Input) -> Object {
+    let input_obj = Object::new();
+    let attrs = Object::new();
+    
+    // Set all input attributes (fields are not Option in vmix-rs)
+    let _ = js_sys::Reflect::set(&attrs, &JsValue::from_str("key"), &JsValue::from_str(&input.key));
+    let _ = js_sys::Reflect::set(&attrs, &JsValue::from_str("number"), &JsValue::from_str(&input.number));
+    if !input.title.is_empty() {
+        let _ = js_sys::Reflect::set(&attrs, &JsValue::from_str("title"), &JsValue::from_str(&input.title));
+    }
+    if !input.short_title.is_empty() {
+        let _ = js_sys::Reflect::set(&attrs, &JsValue::from_str("shortTitle"), &JsValue::from_str(&input.short_title));
+    }
+    let _ = js_sys::Reflect::set(&attrs, &JsValue::from_str("type"), &JsValue::from_str(&input.input_type));
+    let _ = js_sys::Reflect::set(&attrs, &JsValue::from_str("state"), &JsValue::from_str(&format!("{:?}", input.state)));
+    if !input.position.is_empty() {
+        let _ = js_sys::Reflect::set(&attrs, &JsValue::from_str("position"), &JsValue::from_str(&input.position));
+    }
+    if !input.duration.is_empty() {
+        let _ = js_sys::Reflect::set(&attrs, &JsValue::from_str("duration"), &JsValue::from_str(&input.duration));
+    }
+    if let Some(muted) = input.muted {
+        let _ = js_sys::Reflect::set(&attrs, &JsValue::from_str("muted"), &JsValue::from_bool(muted));
+    }
+    if let Some(volume) = input.volume {
+        let _ = js_sys::Reflect::set(&attrs, &JsValue::from_str("volume"), &JsValue::from_str(&volume.to_string()));
+    }
+    if let Some(balance) = input.balance {
+        let _ = js_sys::Reflect::set(&attrs, &JsValue::from_str("balance"), &JsValue::from_str(&balance.to_string()));
+    }
+    if let Some(solo) = input.solo {
+        let _ = js_sys::Reflect::set(&attrs, &JsValue::from_str("solo"), &JsValue::from_bool(solo));
+    }
+    
+    let _ = js_sys::Reflect::set(&input_obj, &JsValue::from_str("$"), &attrs);
+    input_obj
+}
+
+
+// Helper to convert transition to JS Object
+fn transition_to_js(transition: &vmix_core::models::Transition) -> Object {
+    let transition_obj = Object::new();
+    let attrs = Object::new();
+    
+    let _ = js_sys::Reflect::set(&attrs, &JsValue::from_str("effect"), &JsValue::from_str(&transition.effect));
+    let _ = js_sys::Reflect::set(&attrs, &JsValue::from_str("duration"), &JsValue::from_str(&transition.duration));
+    
+    let _ = js_sys::Reflect::set(&transition_obj, &JsValue::from_str("$"), &attrs);
+    transition_obj
+}
 
 #[wasm_bindgen]
 pub fn parse(xml: &str) -> JsValue {
-    // Very small mapper that extracts a subset needed for benchmarking shape compatibility
-    let mut reader = Reader::from_str(xml);
-    reader.config_mut().trim_text(true);
-
-    // Build xml2js-like shape: { vmix: { key: [ ... ] } }
-    let mut vmix = serde_json::Map::new();
-
-    // Pre-initialize common scalars as arrays like xml2js would do
-    // We'll fill these when encountered
-    let mut buf: Vec<u8> = Vec::with_capacity(1024);
-    let mut current_path: Vec<String> = Vec::with_capacity(8);
-
-    // Simple collectors
-    let mut inputs: Vec<Value> = Vec::with_capacity(32);
-    let mut overlays: Vec<Value> = Vec::with_capacity(8);
-    let mut transitions: Vec<Value> = Vec::with_capacity(8);
-    let mut audio_entries: Vec<(String, Value)> = Vec::with_capacity(10);
-    let mut version: Option<String> = None;
-    let mut edition: Option<String> = None;
-    let mut preset: Option<String> = None;
-    let mut active: Option<String> = None;
-    let mut preview: Option<String> = None;
-    let mut streaming: Option<String> = None;
-    let mut fade_to_black: Option<String> = None;
-    let mut external: Option<String> = None;
-    let mut play_list: Option<String> = None;
-    let mut multicorder: Option<String> = None;
-    let mut fullscreen: Option<String> = None;
-    let mut recording_duration: Option<String> = None;
-
-    loop {
-        match reader.read_event_into(&mut buf) {
-            Ok(Event::Start(e)) => {
-                let name = String::from_utf8_lossy(e.name().as_ref()).to_string();
-                current_path.push(name.clone());
-
-                match name.as_str() {
-                    // Collect inputs as xml2js-like: inputs[0].input = [ { $: { ... } } ]
-                    "input" => {
-                        let mut attrs = serde_json::Map::new();
-                        for a in e.attributes().flatten() {
-                            let k = String::from_utf8_lossy(a.key.as_ref()).to_string();
-                            let v = String::from_utf8_lossy(&a.value).to_string();
-                            attrs.insert(k, Value::String(v));
-                        }
-                        inputs.push(json!({"$": attrs}));
-                    }
-                    "overlay" => {
-                        let mut o = serde_json::Map::new();
-                        if let Some(n) = e
-                            .attributes()
-                            .flatten()
-                            .find(|a| a.key.as_ref() == b"number")
-                        {
-                            o.insert("$".to_string(), json!({"number": String::from_utf8_lossy(&n.value).to_string()}));
-                        }
-                        overlays.push(Value::Object(o));
-                    }
-                    "transition" => {
-                        let mut attrs = serde_json::Map::new();
-                        for a in e.attributes().flatten() {
-                            let k = String::from_utf8_lossy(a.key.as_ref()).to_string();
-                            let v = String::from_utf8_lossy(&a.value).to_string();
-                            attrs.insert(k, Value::String(v));
-                        }
-                        transitions.push(json!({"$": attrs}));
-                    }
-                    "recording" => {
-                        if let Some(d) = e
-                            .attributes()
-                            .flatten()
-                            .find(|a| a.key.as_ref() == b"duration")
-                        {
-                            recording_duration = Some(String::from_utf8_lossy(&d.value).to_string());
-                        }
-                    }
-                    // audio buses: <audio><master ... /></audio>
-                    n if n == "master" || n.starts_with("bus") => {
-                        let mut attrs = serde_json::Map::new();
-                        for a in e.attributes().flatten() {
-                            let k = String::from_utf8_lossy(a.key.as_ref()).to_string();
-                            let v = String::from_utf8_lossy(&a.value).to_string();
-                            attrs.insert(k, Value::String(v));
-                        }
-                        audio_entries.push((name.clone(), json!({"$": attrs})));
-                    }
-                    _ => {}
-                }
-            }
-            Ok(Event::End(e)) => {
-                let name = String::from_utf8_lossy(e.name().as_ref()).to_string();
-                if let Some(last) = current_path.pop() {
-                    if last != name {
-                        // ignore
-                    }
-                }
-            }
-            Ok(Event::Text(t)) => {
-                let text = t.unescape().unwrap_or_default().to_string();
-                if let Some(last) = current_path.last() {
-                    match last.as_str() {
-                        "version" => version = Some(text),
-                        "edition" => edition = Some(text),
-                        "preset" => preset = Some(text),
-                        "active" => active = Some(text),
-                        "preview" => preview = Some(text),
-                        "streaming" => streaming = Some(text),
-                        "fadeToBlack" => fade_to_black = Some(text),
-                        "external" => external = Some(text),
-                        "playList" => play_list = Some(text),
-                        "multiCorder" => multicorder = Some(text),
-                        "fullscreen" => fullscreen = Some(text),
-                        _ => {}
-                    }
-                }
-            }
-            Ok(Event::Eof) => break,
-            Err(_) => break,
-            _ => {}
+    // Parse XML using quick-xml with vmix-core models (WASM compatible)
+    let vmix_data: Vmix = match from_str(xml) {
+        Ok(v) => v,
+        Err(_) => {
+            // Return empty structure on error
+            let result = Object::new();
+            let vmix_obj = Object::new();
+            let _ = js_sys::Reflect::set(&result, &JsValue::from_str("vmix"), &vmix_obj);
+            return result.into();
         }
-        buf.clear();
-    }
+    };
+    
+    convert_vmix_to_js(&vmix_data)
+}
 
-    // Assemble xml2js-like JSON
-    if let Some(v) = version { vmix.insert("version".to_string(), json!([v])); }
-    if let Some(v) = edition { vmix.insert("edition".to_string(), json!([v])); }
-    if let Some(v) = preset { vmix.insert("preset".to_string(), json!([v])); }
-    if let Some(v) = active { vmix.insert("active".to_string(), json!([v])); }
-    if let Some(v) = preview { vmix.insert("preview".to_string(), json!([v])); }
-    if let Some(v) = streaming { vmix.insert("streaming".to_string(), json!([v])); }
-    if let Some(v) = fade_to_black { vmix.insert("fadeToBlack".to_string(), json!([v])); }
-    if let Some(v) = external { vmix.insert("external".to_string(), json!([v])); }
-    if let Some(v) = play_list { vmix.insert("playList".to_string(), json!([v])); }
-    if let Some(v) = multicorder { vmix.insert("multiCorder".to_string(), json!([v])); }
-    if let Some(v) = fullscreen { vmix.insert("fullscreen".to_string(), json!([v])); }
+fn convert_vmix_to_js(vmix_data: &Vmix) -> JsValue {
 
-    if !inputs.is_empty() {
-        vmix.insert("inputs".to_string(), json!([{ "input": inputs }]));
+    let vmix = Object::new();
+
+    // Convert scalar values (wrap in arrays for xml2js format)
+    if !vmix_data.version.is_empty() {
+        let _ = js_sys::Reflect::set(&vmix, &JsValue::from_str("version"), &wrap_in_array(&vmix_data.version));
     }
-    if !overlays.is_empty() {
-        vmix.insert("overlays".to_string(), json!([{ "overlay": overlays }]));
+    if !vmix_data.edition.is_empty() {
+        let _ = js_sys::Reflect::set(&vmix, &JsValue::from_str("edition"), &wrap_in_array(&vmix_data.edition));
     }
-    if !transitions.is_empty() {
-        vmix.insert("transitions".to_string(), json!([{ "transition": transitions }]));
-    }
-    if !audio_entries.is_empty() {
-        let mut audio_obj = serde_json::Map::new();
-        for (name, v) in audio_entries {
-            audio_obj.insert(name, v);
+    if let Some(v) = &vmix_data.preset {
+        if !v.is_empty() {
+            let _ = js_sys::Reflect::set(&vmix, &JsValue::from_str("preset"), &wrap_in_array(v));
         }
-        vmix.insert("audio".to_string(), json!([Value::Object(audio_obj)]));
     }
-    if let Some(d) = recording_duration { vmix.insert("recording".to_string(), json!([{"$": {"duration": d}}])); }
+    if !vmix_data.active.is_empty() {
+        let _ = js_sys::Reflect::set(&vmix, &JsValue::from_str("active"), &wrap_in_array(&vmix_data.active));
+    }
+    if !vmix_data.preview.is_empty() {
+        let _ = js_sys::Reflect::set(&vmix, &JsValue::from_str("preview"), &wrap_in_array(&vmix_data.preview));
+    }
+    let _ = js_sys::Reflect::set(&vmix, &JsValue::from_str("streaming"), &wrap_in_array(&vmix_data.streaming.to_string()));
+    let _ = js_sys::Reflect::set(&vmix, &JsValue::from_str("fadeToBlack"), &wrap_in_array(&vmix_data.fade_to_black.to_string()));
+    let _ = js_sys::Reflect::set(&vmix, &JsValue::from_str("external"), &wrap_in_array(&vmix_data.external.to_string()));
+    let _ = js_sys::Reflect::set(&vmix, &JsValue::from_str("playList"), &wrap_in_array(&vmix_data.play_list.to_string()));
+    let _ = js_sys::Reflect::set(&vmix, &JsValue::from_str("multiCorder"), &wrap_in_array(&vmix_data.multi_corder.to_string()));
+    let _ = js_sys::Reflect::set(&vmix, &JsValue::from_str("fullscreen"), &wrap_in_array(&vmix_data.fullscreen.to_string()));
 
-    let obj = json!({ "vmix": Value::Object(vmix) });
-    to_js_value(&obj).unwrap_or(JsValue::NULL)
+    // Convert inputs (Inputs struct has input field with Vec<Input>)
+    if !vmix_data.inputs.input.is_empty() {
+        let inputs = Array::new();
+        for input in &vmix_data.inputs.input {
+            inputs.push(&input_to_js(input).into());
+        }
+        let input_wrapper = Object::new();
+        let _ = js_sys::Reflect::set(&input_wrapper, &JsValue::from_str("input"), &inputs);
+        let inputs_arr = Array::new();
+        inputs_arr.push(&input_wrapper);
+        let _ = js_sys::Reflect::set(&vmix, &JsValue::from_str("inputs"), &inputs_arr);
+    }
+
+    // Convert overlays (Overlays struct has overlay field with Vec<Overlay>)
+    if !vmix_data.overlays.overlay.is_empty() {
+        let overlays = Array::new();
+        for overlay_item in &vmix_data.overlays.overlay {
+            let overlay_obj = Object::new();
+            let attrs_obj = Object::new();
+            if !overlay_item.number.is_empty() {
+                let _ = js_sys::Reflect::set(&attrs_obj, &JsValue::from_str("number"), &JsValue::from_str(&overlay_item.number));
+            }
+            let _ = js_sys::Reflect::set(&overlay_obj, &JsValue::from_str("$"), &attrs_obj);
+            overlays.push(&overlay_obj.into());
+        }
+        let overlay_wrapper = Object::new();
+        let _ = js_sys::Reflect::set(&overlay_wrapper, &JsValue::from_str("overlay"), &overlays);
+        let overlays_arr = Array::new();
+        overlays_arr.push(&overlay_wrapper);
+        let _ = js_sys::Reflect::set(&vmix, &JsValue::from_str("overlays"), &overlays_arr);
+    }
+
+    // Convert transitions (Transitions struct has transition field with Vec<Transition>)
+    if !vmix_data.transitions.transition.is_empty() {
+        let transitions = Array::new();
+        for transition in &vmix_data.transitions.transition {
+            transitions.push(&transition_to_js(transition).into());
+        }
+        let transition_wrapper = Object::new();
+        let _ = js_sys::Reflect::set(&transition_wrapper, &JsValue::from_str("transition"), &transitions);
+        let transitions_arr = Array::new();
+        transitions_arr.push(&transition_wrapper);
+        let _ = js_sys::Reflect::set(&vmix, &JsValue::from_str("transitions"), &transitions_arr);
+    }
+
+    // Convert audio
+    {
+        let audio = &vmix_data.audio;
+        let audio_obj = Object::new();
+        
+        // Master bus
+        {
+            let master = &audio.master;
+            let master_obj = Object::new();
+            let attrs = Object::new();
+            let _ = js_sys::Reflect::set(&attrs, &JsValue::from_str("volume"), &JsValue::from_str(&master.volume.to_string()));
+            let _ = js_sys::Reflect::set(&attrs, &JsValue::from_str("muted"), &JsValue::from_bool(master.muted));
+            let _ = js_sys::Reflect::set(&master_obj, &JsValue::from_str("$"), &attrs);
+            let _ = js_sys::Reflect::set(&audio_obj, &JsValue::from_str("master"), &master_obj);
+        }
+        
+        // Bus A-G (bus_h doesn't exist)
+        for (i, bus) in [&audio.bus_a, &audio.bus_b, &audio.bus_c, &audio.bus_d, &audio.bus_e, &audio.bus_f, &audio.bus_g].iter().enumerate() {
+            if let Some(bus_data) = bus {
+                let bus_obj = Object::new();
+                let attrs = Object::new();
+                let _ = js_sys::Reflect::set(&attrs, &JsValue::from_str("volume"), &JsValue::from_str(&bus_data.volume.to_string()));
+                let _ = js_sys::Reflect::set(&attrs, &JsValue::from_str("muted"), &JsValue::from_bool(bus_data.muted));
+                let _ = js_sys::Reflect::set(&bus_obj, &JsValue::from_str("$"), &attrs);
+                let bus_name = format!("bus{}", (b'A' + i as u8) as char);
+                let _ = js_sys::Reflect::set(&audio_obj, &JsValue::from_str(&bus_name), &bus_obj);
+            }
+        }
+        
+        let audio_arr = Array::new();
+        audio_arr.push(&audio_obj);
+        let _ = js_sys::Reflect::set(&vmix, &JsValue::from_str("audio"), &audio_arr);
+    }
+
+    // Convert recording
+    if vmix_data.recording {
+        // recording is a bool, check if there's a duration field elsewhere
+        // For now, just set recording as a boolean value
+        let recording_arr = Array::new();
+        let recording_obj = Object::new();
+        let _ = js_sys::Reflect::set(&recording_obj, &JsValue::from_str("$"), &Object::new());
+        recording_arr.push(&recording_obj);
+        let _ = js_sys::Reflect::set(&vmix, &JsValue::from_str("recording"), &recording_arr);
+    }
+
+    // Wrap in final vmix object
+    let result = Object::new();
+    let _ = js_sys::Reflect::set(&result, &JsValue::from_str("vmix"), &vmix);
+    result.into()
 }
 
 
