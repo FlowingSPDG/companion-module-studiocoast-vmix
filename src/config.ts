@@ -32,6 +32,7 @@ export interface Config {
   debugSettings: boolean
   debugVariableDefinitionDelay: number
   debugVersionUpdateNotifications: boolean
+  xmlParser: 'xml2js' | 'fast-xml-parser' | 'rust-wasm' | 'vmix'
 
   audioPresets: Record<string, AudioPreset>
 
@@ -339,6 +340,20 @@ export const getConfigFields = (): SomeCompanionConfigField[] => {
       default: true,
       isVisibleExpression: `$(options:debugSettings)`,
     },
+    {
+      type: 'dropdown',
+      id: 'xmlParser',
+      label: 'XML Parser',
+      width: 12,
+      default: 'xml2js',
+      choices: [
+        { id: 'xml2js', label: 'xml2js (default)' },
+        { id: 'fast-xml-parser', label: 'fast-xml-parser' },
+        { id: 'rust-wasm', label: 'Rust WASM (quick-xml)' },
+      ],
+      tooltip: 'Select which XML parser implementation to use. Rust WASM may offer the best performance but requires WASM module to be built.',
+      isVisible: (config) => config.debugSettings === true,
+    },
   ]
 }
 
@@ -374,7 +389,7 @@ export const defaultConfig = (): Config => {
     debugSettings: false,
     debugVariableDefinitionDelay: 2000,
     debugVersionUpdateNotifications: true,
-
+    xmlParser: 'vmix',
     audioPresets: {},
   }
 }

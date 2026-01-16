@@ -103,6 +103,7 @@ export default class VMixInstance extends InstanceBase<VMixInstanceTypes> {
     this.audioPresets.presets = this.config.audioPresets
     this.tcp.update()
     if (this.variables) this.variables.updateVariables()
+    if (this.data) this.data.updateParser()
     return
   }
 
