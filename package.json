@@ -10,7 +10,10 @@
 		"build:test": "tsc -p tsconfig.build.json --noEmit",
 		"lint": "eslint --fix",
 		"lint:test": "eslint",
-		"test": "jest"
+		"test": "jest",
+		"bench": "yarn build && node dist/bench/benchmark-before-after.js",
+		"bench:wasm:build": "cd rust/vmix_xml && wasm-pack build --release --target nodejs --out-dir ../../src/bench/wasm/pkg",
+		"bench:rust": "yarn bench:wasm:build && yarn bench"
 	},
 	"repository": {
 		"type": "git",
@@ -34,7 +37,8 @@
 		"@companion-module/base": "~1.12.0",
 		"companion-module-utils": "^0.4.0",
 		"lodash": "~4.17.21",
-		"xml2js": "~0.6.2"
+    "xml2js": "~0.6.2",
+    "fast-xml-parser": "^4.5.0"
 	},
 	"devDependencies": {
 		"@companion-module/tools": "^2.3.0",

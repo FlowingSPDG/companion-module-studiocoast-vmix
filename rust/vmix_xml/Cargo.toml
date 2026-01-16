@@ -1,0 +1,29 @@
+[package]
+name = "vmix_xml"
+description = "vMix XML Parser for companion"
+version = "4.2.0-rc1"
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/bitfocus/companion-module-studiocoast-vmix"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+# WASM bindings for JavaScript interop
+wasm-bindgen = { version = "0.2" }
+# JavaScript bindings for direct JS object creation
+js-sys = "0.3"
+# Fast XML parser for parsing vMix XML state data
+quick-xml = { version = "0.37", features = ["serialize"] }
+# Use vmix-core directly (WASM compatible, contains from_str function)
+vmix-core = { version = "0.2.1" }
+
+[profile.release]
+opt-level = 3
+codegen-units = 1
+lto = true
+
+# WASM用の最適化設定（速度優先）
+[profile.release.package."*"]
+opt-level = 3

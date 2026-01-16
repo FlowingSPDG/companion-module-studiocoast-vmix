@@ -135,6 +135,7 @@ class VMixInstance extends InstanceBase<Config> {
     this.setPresetDefinitions(getPresets(this))
     if (this.tcp) this.tcp.update()
     if (this.variables) this.variables.updateVariables()
+    if (this.data) this.data.updateParser()
     return
   }
 
