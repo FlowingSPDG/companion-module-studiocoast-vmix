@@ -39,8 +39,10 @@ async function main() {
   const iterations = Number(process.env.BENCH_ITERS || 200)
   const sample = process.env.BENCH_XML || 'bench-sample.xml'
   const xmlPath = join(process.cwd(), 'src', 'bench', sample)
+  // Read XML file (vMix state XML format)
   const xml = readFileSync(xmlPath, 'utf8')
 
+  // XML parser adapters to benchmark
   const cases: BenchCase[] = [
     { name: 'xml2js', adapterFactory: () => new Xml2jsAdapter() },
     { name: 'fast-xml-parser', adapterFactory: () => new FastXmlParserAdapter() },
@@ -56,7 +58,8 @@ async function main() {
     }
   }
 
-  // Rust WASM (optional): try dynamic import if available
+  // Rust WASM parser (optional): try dynamic import if available
+  // Uses quick-xml for XML parsing compiled to WASM
   try {
     // Try local wrapper first
     // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -73,12 +76,13 @@ async function main() {
       wasm = require(p)
     }
     if (wasm && typeof wasm.parse === 'function') {
+      // Rust WASM parser using quick-xml to parse vMix XML
       const wasmAdapter = { parse: async (x: string) => wasm.parse(x) }
-      const r = await runOne('rust-wasm', xml, () => wasmAdapter, iterations)
+      const r = await runOne('rust-wasm (quick-xml)', xml, () => wasmAdapter, iterations)
       results.push(r)
     }
   } catch {
-    results.push({ name: 'rust-wasm', skipped: true })
+    results.push({ name: 'rust-wasm (quick-xml)', skipped: true })
   }
 
   console.log(JSON.stringify({ iterations, sample, results }, null, 2))
