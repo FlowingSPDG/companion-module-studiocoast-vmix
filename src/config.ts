@@ -343,7 +343,7 @@ export const getConfigFields = (): SomeCompanionConfigField[] => {
       choices: [
         { id: 'xml2js', label: 'xml2js (default)' },
         { id: 'fast-xml-parser', label: 'fast-xml-parser' },
-        { id: 'rust-wasm', label: 'Rust WASM (quick-xml)' },
+        // { id: 'rust-wasm', label: 'Rust WASM (quick-xml)' }, // PR #2で追加予定
       ],
       tooltip: 'Select which XML parser implementation to use. Rust WASM may offer the best performance but requires WASM module to be built.',
       isVisible: (config) => config.debugSettings === true,
