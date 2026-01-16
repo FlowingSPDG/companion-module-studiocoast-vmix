@@ -1,6 +1,9 @@
-import * as xml2js from 'xml2js'
 import { get, isEqual } from 'lodash'
 import type VMixInstance from './'
+import { XmlParserAdapter } from './xml/adapter'
+import { Xml2jsAdapter } from './xml/xml2jsAdapter'
+import { FastXmlParserAdapter } from './xml/fxpAdapter'
+import { RustWasmAdapter } from './xml/rustWasmAdapter'
 
 export interface AudioBus {
   bus: 'master' | 'busA' | 'busB' | 'busC' | 'busD' | 'busE' | 'busF' | 'busG'
@@ -262,15 +265,6 @@ interface APIData {
   dynamicValue: DynamicValue[]
 }
 
-const parserOptions = {
-  tagNameProcessors: [],
-  attrNameProcessors: [],
-  valueProcessors: [xml2js.processors.parseBooleans],
-  attrValueProcessors: [xml2js.processors.parseBooleans],
-}
-
-const parser = new xml2js.Parser(parserOptions)
-
 export class VMixData {
   instance: VMixInstance
   loaded: boolean
@@ -291,6 +285,7 @@ export class VMixData {
   channelMixer: ChannelMixer
   dynamicInput: DynamicInput[]
   dynamicValue: DynamicValue[]
+  private parser: XmlParserAdapter
 
   constructor(instance: VMixInstance) {
     this.instance = instance
@@ -352,6 +347,28 @@ export class VMixData {
     this.channelMixer = {}
     this.dynamicInput = []
     this.dynamicValue = []
+    this.parser = this.createParser()
+  }
+
+  /**
+   * @description Creates a parser adapter based on the instance configuration
+   */
+  private createParser(): XmlParserAdapter {
+    const parserType = this.instance.config.xmlParser || 'xml2js'
+    if (parserType === 'fast-xml-parser') {
+      return new FastXmlParserAdapter()
+    }
+    if (parserType === 'rust-wasm') {
+      return new RustWasmAdapter()
+    }
+    return new Xml2jsAdapter()
+  }
+
+  /**
+   * @description Updates the parser when configuration changes
+   */
+  public updateParser(): void {
+    this.parser = this.createParser()
   }
 
   /**
@@ -467,8 +484,11 @@ export class VMixData {
    * @returns Promise resolving to the new data
    */
   private async parse(data: string): Promise<APIData> {
-    return parser.parseStringPromise(data).then((parsedData: any) => {
-      parsedData = parsedData.vmix
+    return this.parser.parse(data).then((parsedData: any) => {
+      // fast-xml-parser returns the root element directly, xml2js wraps it
+      if (parsedData.vmix) {
+        parsedData = parsedData.vmix
+      }
       const version = parsedData.version[0] || ''
       const majorVersion = parseInt(version.split('.')[0])
 
