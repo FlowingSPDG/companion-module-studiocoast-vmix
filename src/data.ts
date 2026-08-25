@@ -1,8 +1,11 @@
-import * as xml2js from 'xml2js'
 import lodash from 'lodash'
 import { createModuleLogger } from '@companion-module/base'
 import type VMixInstance from './index.js'
 import { type FeedbackId } from './feedbacks/feedback.js'
+import type { XmlParserAdapter } from './xml/adapter.js'
+import { Xml2jsAdapter } from './xml/xml2jsAdapter.js'
+import { FastXmlParserAdapter } from './xml/fxpAdapter.js'
+import { VmixXmlAdapter } from './xml/vmixAdapter.js'
 
 export interface AudioBus {
   bus: 'master' | 'busA' | 'busB' | 'busC' | 'busD' | 'busE' | 'busF' | 'busG'
@@ -268,15 +271,7 @@ interface APIData {
 }
 
 const log = createModuleLogger('Data')
-
-const parserOptions = {
-  tagNameProcessors: [],
-  attrNameProcessors: [],
-  valueProcessors: [xml2js.processors.parseBooleans],
-  attrValueProcessors: [xml2js.processors.parseBooleans],
-}
-
-const parser = new xml2js.Parser(parserOptions)
+const INPUT_NUMBER_PATTERN = /^\d+$/
 
 export class VMixData {
   instance: VMixInstance
@@ -286,18 +281,22 @@ export class VMixData {
   edition: string
   preset: string
   inputs: Input[]
+  private inputsMap: Map<string, Input>
+  private inputsByNumberMap: Map<number, Input>
   outputs: Output[]
   overlays: Overlay[]
   transitions: Transition[]
   mix: Mix[]
   audio: AudioBus[]
   audioLevels: AudioLevel[]
+  private audioLevelsMap: Map<string, AudioLevel>
   status: Status
   recording: Recording
   replay: Replay
   channelMixer: ChannelMixer
   dynamicInput: DynamicInput[]
   dynamicValue: DynamicValue[]
+  private parser: XmlParserAdapter
 
   constructor(instance: VMixInstance) {
     this.instance = instance
@@ -307,6 +306,8 @@ export class VMixData {
     this.edition = ''
     this.preset = ''
     this.inputs = []
+    this.inputsMap = new Map()
+    this.inputsByNumberMap = new Map()
     this.outputs = []
     this.overlays = []
     this.transitions = []
@@ -323,6 +324,7 @@ export class VMixData {
 
     this.audio = []
     this.audioLevels = []
+    this.audioLevelsMap = new Map()
     this.status = {
       fadeToBlack: false,
       recording: false,
@@ -359,6 +361,28 @@ export class VMixData {
     this.channelMixer = {}
     this.dynamicInput = []
     this.dynamicValue = []
+    this.parser = this.createParser()
+  }
+
+  /**
+   * @description Creates a parser adapter based on the instance configuration
+   */
+  private createParser(): XmlParserAdapter {
+    const parserType = this.instance.config.xmlParser || 'vmix'
+    if (parserType === 'xml2js') {
+      return new Xml2jsAdapter()
+    }
+    if (parserType === 'fast-xml-parser') {
+      return new FastXmlParserAdapter()
+    }
+    return new VmixXmlAdapter()
+  }
+
+  /**
+   * @description Updates the parser when configuration changes
+   */
+  public updateParser(): void {
+    this.parser = this.createParser()
   }
 
   /**
@@ -383,39 +407,44 @@ export class VMixData {
    * @returns AudioLevelData
    * @description parses an AudioLevel into 1 second and 3 second data
    */
+  public getAudioLevel(key: string): AudioLevel | undefined {
+    return this.audioLevelsMap.get(key)
+  }
+
   public getAudioLevelData(level: AudioLevel): AudioLevelData {
     const now = Math.floor(new Date().getTime() / 1000)
-    let s1 = 1000 / this.instance.config.apiPollInterval
-    let s3 = s1 * 3
-
-    if (s1 < 1) s1 = 1
-    if (s3 < 1) s3 = 1
-
-    const s1ArrF1 = level.meterF1.filter((level) => Math.floor(level.time.getTime() / 1000) === now - 1).map((level) => level.value)
-    const s1ArrF2 = level.meterF2.filter((level) => Math.floor(level.time.getTime() / 1000) === now - 1).map((level) => level.value)
-    const s3ArrF1 = level.meterF1.filter((level) => Math.floor(level.time.getTime() / 1000) < now && Math.floor(level.time.getTime() / 1000) > now - 4).map((level) => level.value)
-    const s3ArrF2 = level.meterF2.filter((level) => Math.floor(level.time.getTime() / 1000) < now && Math.floor(level.time.getTime() / 1000) > now - 4).map((level) => level.value)
-
+    const s1ArrF1: number[] = []
+    const s1ArrF2: number[] = []
+    const s3ArrF1: number[] = []
+    const s3ArrF2: number[] = []
     let s1MeterF1Peak = 0
     let s1MeterF2Peak = 0
     let s3MeterF1Peak = 0
     let s3MeterF2Peak = 0
 
-    s1ArrF1.forEach((level) => {
-      if (level > s1MeterF1Peak) s1MeterF1Peak = level
-    })
+    for (const sample of level.meterF1) {
+      const sec = Math.floor(sample.time.getTime() / 1000)
+      if (sec === now - 1) {
+        s1ArrF1.push(sample.value)
+        if (sample.value > s1MeterF1Peak) s1MeterF1Peak = sample.value
+      }
+      if (sec < now && sec > now - 4) {
+        s3ArrF1.push(sample.value)
+        if (sample.value > s3MeterF1Peak) s3MeterF1Peak = sample.value
+      }
+    }
 
-    s1ArrF2.forEach((level) => {
-      if (level > s1MeterF2Peak) s1MeterF2Peak = level
-    })
-
-    s3ArrF1.forEach((level) => {
-      if (level > s3MeterF1Peak) s3MeterF1Peak = level
-    })
-
-    s3ArrF2.forEach((level) => {
-      if (level > s3MeterF2Peak) s3MeterF2Peak = level
-    })
+    for (const sample of level.meterF2) {
+      const sec = Math.floor(sample.time.getTime() / 1000)
+      if (sec === now - 1) {
+        s1ArrF2.push(sample.value)
+        if (sample.value > s1MeterF2Peak) s1MeterF2Peak = sample.value
+      }
+      if (sec < now && sec > now - 4) {
+        s3ArrF2.push(sample.value)
+        if (sample.value > s3MeterF2Peak) s3MeterF2Peak = sample.value
+      }
+    }
 
     return {
       s1MeterF1Avg: s1ArrF1.reduce((a, b) => a + b, 0) / s1ArrF1.length,
@@ -434,14 +463,17 @@ export class VMixData {
    * @returns Input or null if not found
    * @description any instance variables are parsed, and then input numbers take priority over other types
    */
-  public async getInput(value: string | number): Promise<Input | null> {
-    const int = RegExp(/^\d+$/)
-    let input
+  public getInput(value: string | number): Input | null {
+    let input: Input | null | undefined
 
-    if (typeof value === 'number' || int.test(value)) {
-      input = this.inputs.find((item) => item.number == value)
+    if (typeof value === 'number' || INPUT_NUMBER_PATTERN.test(value)) {
+      const num = typeof value === 'number' ? value : parseInt(value, 10)
+      input = this.inputsByNumberMap.get(num) || null
     } else {
-      input = this.inputs.find((item) => item.shortTitle === value || item.title === value || item.key === value)
+      input = this.inputsMap.get(value) || null
+      if (!input) {
+        input = this.inputs.find((item) => item.shortTitle === value || item.title === value) || null
+      }
     }
 
     return input || null
@@ -451,8 +483,8 @@ export class VMixData {
    * @param value accepts input number, shortTitle, title, GUID, or instance variable
    * @returns shortTitle, title, or an empty string
    */
-  public async getInputTitle(value: string | number): Promise<string> {
-    const input = await this.getInput(value)
+  public getInputTitle(value: string | number): string {
+    const input = this.getInput(value)
 
     return input ? input.shortTitle || input.title : ''
   }
@@ -462,8 +494,10 @@ export class VMixData {
    * @returns Promise resolving to the new data
    */
   private async parse(data: string): Promise<APIData> {
-    return parser.parseStringPromise(data).then((parsedData: any) => {
-      parsedData = parsedData.vmix
+    return this.parser.parse(data).then((parsedData: any) => {
+      if (parsedData.vmix) {
+        parsedData = Array.isArray(parsedData.vmix) ? parsedData.vmix[0] : parsedData.vmix
+      }
       const version = parsedData.version[0] || ''
       const majorVersion = parseInt(version.split('.')[0])
 
@@ -511,7 +545,8 @@ export class VMixData {
                   data.location = listItem
                 }
 
-                data.filename = data.location.split('\\')[data.location.split('\\').length - 1]
+                const parts = data.location.split('\\')
+                data.filename = parts[parts.length - 1]
 
                 return data
               })
@@ -545,16 +580,18 @@ export class VMixData {
           }
 
           if (inputData.meterF1 && inputData.meterF2) {
-            const audioLevel = this.audioLevels.find((level) => level.key === inputData.key)
             const now = new Date()
+            let audioLevel = this.audioLevelsMap.get(inputData.key)
 
             if (!audioLevel) {
-              this.audioLevels.push({
+              audioLevel = {
                 key: inputData.key,
                 type: 'input',
                 meterF1: [{ time: now, value: inputData.meterF1 }],
                 meterF2: [{ time: now, value: inputData.meterF2 }],
-              })
+              }
+              this.audioLevels.push(audioLevel)
+              this.audioLevelsMap.set(inputData.key, audioLevel)
             } else {
               audioLevel.meterF1.push({ time: now, value: inputData.meterF1 })
               audioLevel.meterF2.push({ time: now, value: inputData.meterF2 })
@@ -579,34 +616,32 @@ export class VMixData {
           }
 
           if (input?.overlay?.[0]?.$) {
-            inputData.overlay = input.overlay.map((overlay: any) => ({
-              index: parseInt(overlay.$.index, 10),
-              key: overlay.$.key,
-              panX: parseFloat(lodash.get(overlay, 'position[0].$.panX', 0)),
-              panY: parseFloat(lodash.get(overlay, 'position[0].$.panY', 0)),
-              zoomX: parseFloat(lodash.get(overlay, 'position[0].$.zoomX', 1)),
-              zoomY: parseFloat(lodash.get(overlay, 'position[0].$.zoomY', 1)),
-              x: parseFloat(lodash.get(overlay, 'position[0].$.x', 0)),
-              y: parseFloat(lodash.get(overlay, 'position[0].$.y', 0)),
-              width: parseFloat(lodash.get(overlay, 'position[0].$.width', 0)),
-              height: parseFloat(lodash.get(overlay, 'position[0].$.height', 0)),
-              cropX1: parseFloat(lodash.get(overlay, 'crop[0].$.X1', 0)),
-              cropX2: parseFloat(lodash.get(overlay, 'crop[0].$.X2', 1)),
-              cropY1: parseFloat(lodash.get(overlay, 'crop[0].$.Y1', 0)),
-              cropY2: parseFloat(lodash.get(overlay, 'crop[0].$.Y2', 1)),
-            }))
+            inputData.overlay = input.overlay.map((overlay: any) => {
+              const position = overlay.position?.[0]?.$ || {}
+              const crop = overlay.crop?.[0]?.$ || {}
+              return {
+                index: parseInt(overlay.$.index, 10),
+                key: overlay.$.key,
+                panX: parseFloat(position.panX || '0'),
+                panY: parseFloat(position.panY || '0'),
+                zoomX: parseFloat(position.zoomX || '1'),
+                zoomY: parseFloat(position.zoomY || '1'),
+                x: parseFloat(position.x || '0'),
+                y: parseFloat(position.y || '0'),
+                width: parseFloat(position.width || '0'),
+                height: parseFloat(position.height || '0'),
+                cropX1: parseFloat(crop.X1 || '0'),
+                cropX2: parseFloat(crop.X2 || '1'),
+                cropY1: parseFloat(crop.Y1 || '0'),
+                cropY2: parseFloat(crop.Y2 || '1'),
+              }
+            })
           }
 
-          if (input.$.text) {
-            inputData.text = input.$.text.map((text: any) => ({
-              index: parseInt(text.$.index, 10),
-              name: text.$.name + '',
-              value: text._ === undefined ? '' : text._ + '',
-            }))
-          }
-
-          if (input.text && input.text.length > 0) {
-            inputData.text = input.text.map((text: any) => ({
+          // Check both input.$.text and input.text (avoid duplicate processing)
+          const textData = input.$.text || (input.text && input.text.length > 0 ? input.text : null)
+          if (textData) {
+            inputData.text = textData.map((text: any) => ({
               index: parseInt(text.$.index, 10),
               name: text.$.name + '',
               value: text._ === undefined ? '' : text._ + '',
@@ -766,16 +801,18 @@ export class VMixData {
 
           busData.push(bus)
 
-          const audioLevel = this.audioLevels.find((level) => level.key === key)
+          const audioLevel = this.audioLevelsMap.get(key)
           const now = new Date()
 
           if (!audioLevel) {
-            this.audioLevels.push({
+            const created: AudioLevel = {
               key,
               type: 'bus',
               meterF1: [{ time: now, value: bus.meterF1 }],
               meterF2: [{ time: now, value: bus.meterF2 }],
-            })
+            }
+            this.audioLevels.push(created)
+            this.audioLevelsMap.set(key, created)
           } else {
             audioLevel.meterF1.push({ time: now, value: bus.meterF1 })
             audioLevel.meterF2.push({ time: now, value: bus.meterF2 })
@@ -933,6 +970,14 @@ export class VMixData {
         dynamicValue: getDynamics('value'),
       }
 
+      // Create temporary Map for newData.inputs lookups (optimization)
+      const newInputsMap = new Map<string, Input>()
+      const newInputsByNumberMap = new Map<number, Input>()
+      newData.inputs.forEach((input) => {
+        newInputsMap.set(input.key, input)
+        newInputsByNumberMap.set(input.number, input)
+      })
+
       // Update layer tally
       newData.mix.forEach((mix) => {
         const checkTally = (type: 'previewTally' | 'programTally', input: Input) => {
@@ -941,7 +986,7 @@ export class VMixData {
 
             if (input.overlay) {
               input.overlay.forEach((layer) => {
-                const layerInput = newData.inputs.find((input) => input.key === layer.key)
+                const layerInput = newInputsMap.get(layer.key)
 
                 if (layerInput) {
                   checkTally(type, layerInput)
@@ -952,7 +997,7 @@ export class VMixData {
         }
 
         if (mix.preview !== null) {
-          const previewInput = newData.inputs.find((input) => input.number == mix.preview)
+          const previewInput = newInputsByNumberMap.get(mix.preview)
 
           if (previewInput) {
             checkTally('previewTally', previewInput)
@@ -960,7 +1005,7 @@ export class VMixData {
         }
 
         if (mix.program !== null) {
-          const programInput = newData.inputs.find((input) => input.number == mix.program)
+          const programInput = newInputsByNumberMap.get(mix.program)
 
           if (programInput) {
             checkTally('programTally', programInput)
@@ -970,7 +1015,7 @@ export class VMixData {
         newData.overlays
           .filter((overlay) => overlay.input !== null)
           .forEach((overlay) => {
-            const overlayInput = newData.inputs.find((input) => input.number === overlay.input)
+            const overlayInput = newInputsByNumberMap.get(overlay.input!)
 
             if (overlayInput) {
               checkTally(overlay.preview ? 'previewTally' : 'programTally', overlayInput)
@@ -988,22 +1033,16 @@ export class VMixData {
         }
       })
 
-      // Clean up removed inputs from channel mixer
+      const inputKeys = new Set(newData.inputs.map((input) => input.key))
+
       Object.keys(newData.channelMixer).forEach((key) => {
-        if (!newData.inputs.map((input) => input.key).includes(key)) {
+        if (!inputKeys.has(key)) {
           delete newData.channelMixer[key]
         }
       })
 
-      // Clean up Audio levels for removed inputs
-      this.audioLevels = this.audioLevels.filter((level) => {
-        let inputFound = false
-        newData.inputs.forEach((input) => {
-          if (input.key === level.key) inputFound = true
-        })
-
-        return inputFound || level.type === 'bus'
-      })
+      this.audioLevels = this.audioLevels.filter((level) => level.type === 'bus' || inputKeys.has(level.key))
+      this.audioLevelsMap = new Map(this.audioLevels.map((level) => [level.key, level]))
 
       return newData
     })
@@ -1016,17 +1055,26 @@ export class VMixData {
   private async setData(newData: APIData): Promise<void> {
     const changes: Set<FeedbackId> = new Set()
 
-    // Check inputs for additions/deletions or change in index order
-    const inputCheck = newData.inputs.map((input) => input.key).join('') !== this.inputs.map((input) => input.key).join('')
+    // Create temporary Map for newData.inputs lookups (optimization)
+    const newInputsMap = new Map<string, Input>()
+    const newInputsByNumberMap = new Map<number, Input>()
+    newData.inputs.forEach((input) => {
+      newInputsMap.set(input.key, input)
+      newInputsByNumberMap.set(input.number, input)
+    })
 
-    // Copy any existing Channel Mixer data from activator updates
-    const updateChannelMixer = async (input: Input) => {
-      const oldInput = await this.getInput(input.key)
+    // Check inputs for additions/deletions or change in index order (optimized)
+    const inputCheck =
+      newData.inputs.length !== this.inputs.length ||
+      (newData.inputs.length > 0 && (newData.inputs[0].key !== this.inputs[0]?.key || newData.inputs[newData.inputs.length - 1].key !== this.inputs[this.inputs.length - 1]?.key))
 
-      if (oldInput && oldInput.channelMixer) input.channelMixer = oldInput.channelMixer
-    }
-
-    await Promise.all(newData.inputs.map(async (input) => updateChannelMixer(input)))
+    // Copy any existing Channel Mixer data from activator updates (optimized with Map)
+    newData.inputs.forEach((input) => {
+      const oldInput = this.inputsMap.get(input.key)
+      if (oldInput && oldInput.channelMixer) {
+        input.channelMixer = oldInput.channelMixer
+      }
+    })
 
     // Add activator data
     newData.audio.forEach((bus) => {
@@ -1036,7 +1084,7 @@ export class VMixData {
     })
 
     newData.inputs.forEach((newInput) => {
-      const oldInput = this.inputs.find((input) => input.key === newInput.key)
+      const oldInput = this.inputsMap.get(newInput.key)
 
       if (oldInput) {
         newInput.audioAuto = oldInput.audioAuto
@@ -1069,12 +1117,12 @@ export class VMixData {
     }
 
     // Update feedbacks for first load, changes handled by Activators
-    if (!this.loaded && (!lodash.isEqual(newData.inputs, this.inputs) || inputCheck)) {
+    if (!this.loaded && (inputCheck || !lodash.isEqual(newData.inputs, this.inputs))) {
       changes.add('inputVolumeLevel')
     }
 
     // Update feedback if new data differs from previous data
-    if (!lodash.isEqual(newData.inputs, this.inputs) || inputCheck) {
+    if (inputCheck || !lodash.isEqual(newData.inputs, this.inputs)) {
       changes.add('videoTimer')
       changes.add('inputAudio')
       changes.add('inputSolo')
@@ -1105,7 +1153,7 @@ export class VMixData {
     newData.inputs
       .filter((input) => input.type === 'VideoCall')
       .forEach((input) => {
-        const previousInput = this.inputs.find((item) => item.key === input.key)
+        const previousInput = this.inputsMap.get(input.key)
 
         if (previousInput?.callAudioSource !== input.callAudioSource) {
           changes.add('videoCallAudioSource')
@@ -1153,6 +1201,13 @@ export class VMixData {
     this.edition = newData.edition
     this.preset = newData.preset
     this.inputs = newData.inputs
+    // Update inputsMap for O(1) lookups
+    this.inputsMap.clear()
+    this.inputsByNumberMap.clear()
+    newData.inputs.forEach((input) => {
+      this.inputsMap.set(input.key, input)
+      this.inputsByNumberMap.set(input.number, input)
+    })
     this.outputs = newData.outputs
     this.overlays = newData.overlays
     this.transitions = newData.transitions

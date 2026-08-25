@@ -43,7 +43,7 @@ export const getListFeedbacks = (instance: VMixInstance): CompanionFeedbackDefin
       ],
       callback: async (feedback) => {
         const inputOption = feedback.options.input
-        const input = await instance.data.getInput(inputOption)
+        const input = instance.data.getInput(inputOption)
         const index = feedback.options.selectedIndex
 
         if (input?.type === 'VideoList') {
@@ -70,7 +70,7 @@ export const getListFeedbacks = (instance: VMixInstance): CompanionFeedbackDefin
       options: [options.input, options.selectedIndex],
       callback: async (feedback) => {
         const inputOption = feedback.options.input
-        const input = await instance.data.getInput(inputOption)
+        const input = instance.data.getInput(inputOption)
         const index = feedback.options.selectedIndex
 
         return input?.selectedIndex === parseInt(index, 10)

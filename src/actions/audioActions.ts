@@ -348,7 +348,7 @@ export const getAudioActions = (instance: VMixInstance, sendBasicCommand: SendBa
       callback: async (action) => {
         const selected = action.options.input
         const amount = parseFloat(action.options.amount)
-        const input = await instance.data.getInput(selected)
+        const input = instance.data.getInput(selected)
 
         if (input === null || input.volume === undefined) return
 
@@ -538,7 +538,7 @@ export const getAudioActions = (instance: VMixInstance, sendBasicCommand: SendBa
         },
       ],
       callback: async (action) => {
-        const input = await instance.data.getInput(action.options.input)
+        const input = instance.data.getInput(action.options.input)
         let bus: string = action.options.value === 'Selected' ? instance.routingData.bus : action.options.value
         if (bus === 'Master') bus = 'M'
 
@@ -573,7 +573,7 @@ export const getAudioActions = (instance: VMixInstance, sendBasicCommand: SendBa
         const selected = action.options.input
         const amount = parseFloat(action.options.amount)
         const channel = parseInt(action.options.channel)
-        const input = await instance.data.getInput(selected)
+        const input = instance.data.getInput(selected)
 
         if (input === null || isNaN(amount) || isNaN(channel) || input.volumeF1 === undefined || input.volumeF2 === undefined) return
 
@@ -619,7 +619,7 @@ export const getAudioActions = (instance: VMixInstance, sendBasicCommand: SendBa
         },
       ],
       callback: async (action) => {
-        const input = await instance.data.getInput(action.options.input)
+        const input = instance.data.getInput(action.options.input)
         const amount = parseFloat(action.options.amount)
         const channel = parseInt(action.options.channel)
 
@@ -662,7 +662,7 @@ export const getAudioActions = (instance: VMixInstance, sendBasicCommand: SendBa
         },
       ],
       callback: async (action) => {
-        const input = await instance.data.getInput(action.options.input)
+        const input = instance.data.getInput(action.options.input)
         const amount = action.options.amount
         let newValue = amount
 
@@ -715,7 +715,7 @@ export const getAudioActions = (instance: VMixInstance, sendBasicCommand: SendBa
         },
       ],
       callback: async (action) => {
-        const input = await instance.data.getInput(action.options.input)
+        const input = instance.data.getInput(action.options.input)
         const amount = action.options.amount
         let newValue = amount
         let type = 'SetGain'

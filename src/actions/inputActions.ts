@@ -393,7 +393,7 @@ export const getInputActions = (instance: VMixInstance, sendBasicCommand: SendBa
         },
       ],
       callback: async (action) => {
-        const input = await instance.data.getInput(action.options.input)
+        const input = instance.data.getInput(action.options.input)
         const valueOption = action.options.setting.startsWith('SetCCGain') ? action.options.gainValue : action.options.otherValue
         const value = valueOption
         let parsedValue = parseFloat(value)
@@ -498,7 +498,7 @@ export const getInputActions = (instance: VMixInstance, sendBasicCommand: SendBa
       ],
       callback: async (action) => {
         const selected = action.options.input
-        const input = await instance.data.getInput(selected)
+        const input = instance.data.getInput(selected)
         let cmd = ''
 
         if (!input) return
@@ -597,7 +597,7 @@ export const getInputActions = (instance: VMixInstance, sendBasicCommand: SendBa
       ],
       callback: async (action) => {
         const selected = action.options.input
-        const input = await instance.data.getInput(selected)
+        const input = instance.data.getInput(selected)
         let value: number | string = action.options.value
         value = parseInt(value)
 
@@ -812,7 +812,7 @@ export const getInputActions = (instance: VMixInstance, sendBasicCommand: SendBa
         },
       ],
       callback: async (action) => {
-        const input = await instance.data.getInput(action.options.input)
+        const input = instance.data.getInput(action.options.input)
 
         if (input === null) return
 

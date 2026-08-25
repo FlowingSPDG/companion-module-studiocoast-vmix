@@ -49,8 +49,8 @@ export const mixDefinitions = async (instance: VMixInstance): Promise<CompanionV
 
   const setDefinitions = async (mix: Mix, selected: boolean = false): Promise<void> => {
     const id = selected ? 'Selected' : mix.number.toString()
-    const mixProgramInput = await instance.data.getInput(mix.program)
-    const mixPreviewInput = await instance.data.getInput(mix.preview)
+    const mixProgramInput = instance.data.getInput(mix.program)
+    const mixPreviewInput = instance.data.getInput(mix.preview)
 
     for (const type of mixTypes) {
       const input = type === 'Preview' ? mixPreviewInput : mixProgramInput
@@ -163,8 +163,8 @@ export const mixValues = async (instance: VMixInstance): Promise<MixVariablesSch
 
   const setVariables = async (mix: Mix, selected: boolean = false) => {
     const id = selected ? 'selected' : mix.number.toString()
-    const mixProgramInput = await instance.data.getInput(mix.program)
-    const mixPreviewInput = await instance.data.getInput(mix.preview)
+    const mixProgramInput = instance.data.getInput(mix.program)
+    const mixPreviewInput = instance.data.getInput(mix.preview)
 
     for (const type of mixTypes) {
       const input = type === 'preview' ? mixPreviewInput : mixProgramInput
@@ -172,7 +172,7 @@ export const mixValues = async (instance: VMixInstance): Promise<MixVariablesSch
 
       const inputAudio = input.muted === undefined ? false : input.muted
       variables[`mix_${id}_${type}`] = mix[type]
-      variables[`mix_${id}_${type}_name`] = await instance.data.getInputTitle(mix[type])
+      variables[`mix_${id}_${type}_name`] = instance.data.getInputTitle(mix[type])
       variables[`mix_${id}_${type}_full_title`] = input.title
       variables[`mix_${id}_${type}_guid`] = input.key
       variables[`mix_${id}_${type}_playing`] = (input.state === 'Running').toString()
@@ -185,7 +185,7 @@ export const mixValues = async (instance: VMixInstance): Promise<MixVariablesSch
       variables[`mix_${id}_${type}_meterf2_linear`] = Math.round(volumeToLinear((input.meterF2 || 0) * 100))
 
       if (instance.config.variablesShowInputVolume) {
-        const audioLevel = instance.data.audioLevels.find((level) => level.key === input.key)
+        const audioLevel = instance.data.getAudioLevel(input.key)
         const audioLevelData = audioLevel ? instance.data.getAudioLevelData(audioLevel) : false
         variables[`mix_${id}_${type}_meterf1_avg_1s`] = audioLevelData ? volumeTodB(audioLevelData.s1MeterF1Avg * 100).toFixed(1) : ''
         variables[`mix_${id}_${type}_meterf2_avg_1s`] = audioLevelData ? volumeTodB(audioLevelData.s1MeterF2Avg * 100).toFixed(1) : ''
@@ -253,7 +253,7 @@ export const mixValues = async (instance: VMixInstance): Promise<MixVariablesSch
         }
 
         for (const layer of input.overlay || []) {
-          const inputLayer = await instance.data.getInput(layer.key)
+          const inputLayer = instance.data.getInput(layer.key)
 
           variables[`mix_${id}_${type}_layer_${layer.index + 1}_number`] = inputLayer?.number || undefined
           variables[`mix_${id}_${type}_layer_${layer.index + 1}_name`] = inputLayer?.shortTitle || inputLayer?.title || ''

@@ -61,3 +61,11 @@ If you'd like to support my work, you can sponsor me on [GitHub](https://github.
 
 
 Older patch notes available in [docs/patch_notes.md](./docs/patch_notes.md)
+
+## Benchmark
+
+1. Install dependencies
+   - `yarn install --frozen-lockfile`
+2. Run benchmark
+   - `yarn bench`
+   - `BENCH_ITERS=500 BENCH_XML=bench-sample.xml yarn bench`

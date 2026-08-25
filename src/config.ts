@@ -32,6 +32,7 @@ export interface Config {
   debugSettings: boolean
   debugVariableDefinitionDelay: number
   debugVersionUpdateNotifications: boolean
+  xmlParser: 'xml2js' | 'fast-xml-parser' | 'vmix'
 
   audioPresets: Record<string, AudioPreset>
 
@@ -339,6 +340,20 @@ export const getConfigFields = (): SomeCompanionConfigField[] => {
       default: true,
       isVisibleExpression: `$(options:debugSettings)`,
     },
+    {
+      type: 'dropdown',
+      id: 'xmlParser',
+      label: 'XML Parser',
+      width: 12,
+      default: 'vmix',
+      choices: [
+        { id: 'vmix', label: 'vMix JS parser (default)' },
+        { id: 'xml2js', label: 'xml2js' },
+        { id: 'fast-xml-parser', label: 'fast-xml-parser' },
+      ],
+      tooltip: 'Parser used for the vMix XML API poll. The vMix JS parser is a schema-specific stack parser; xml2js is the historical default.',
+      isVisibleExpression: `$(options:debugSettings)`,
+    },
   ]
 }
 
@@ -374,7 +389,7 @@ export const defaultConfig = (): Config => {
     debugSettings: false,
     debugVariableDefinitionDelay: 2000,
     debugVersionUpdateNotifications: true,
-
+    xmlParser: 'vmix',
     audioPresets: {},
   }
 }

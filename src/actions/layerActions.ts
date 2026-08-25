@@ -169,8 +169,8 @@ export const getLayerActions = (instance: VMixInstance, sendBasicCommand: SendBa
         },
       ],
       callback: async (action) => {
-        const input = await instance.data.getInput(action.options.input)
-        const layerInput = await instance.data.getInput(action.options.layerInput)
+        const input = instance.data.getInput(action.options.input)
+        const layerInput = instance.data.getInput(action.options.layerInput)
 
         if (input === null || layerInput === null) return
 
@@ -427,7 +427,7 @@ export const getLayerActions = (instance: VMixInstance, sendBasicCommand: SendBa
       ],
       callback: async (action) => {
         const selected = action.options.input
-        const input = await instance.data.getInput(selected)
+        const input = instance.data.getInput(selected)
         const selectedLayer = action.options.layer
         const layer = parseInt(selectedLayer)
         const inputLayer = input?.overlay?.find((overlay) => overlay.index === layer - 1)
@@ -571,7 +571,7 @@ export const getLayerActions = (instance: VMixInstance, sendBasicCommand: SendBa
         },
       ],
       callback: async (action) => {
-        const input = await instance.data.getInput(action.options.input)
+        const input = instance.data.getInput(action.options.input)
 
         if (input === null) return
 
@@ -616,7 +616,7 @@ export const getLayerActions = (instance: VMixInstance, sendBasicCommand: SendBa
         },
       ],
       callback: async (action) => {
-        const input = await instance.data.getInput(action.options.input)
+        const input = instance.data.getInput(action.options.input)
 
         if (input === null) return
 

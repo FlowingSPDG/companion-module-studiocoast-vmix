@@ -115,7 +115,7 @@ export class AudioPresets {
       })
 
       for (const presetInput of presetInputs) {
-        const input = await this.instance.data.getInput(presetInput.id)
+        const input = this.instance.data.getInput(presetInput.id)
 
         if (!input) {
           return

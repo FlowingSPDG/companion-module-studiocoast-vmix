@@ -36,7 +36,7 @@ export const getVideoCallFeedbacks = (instance: VMixInstance): CompanionFeedback
       ],
       callback: async (feedback) => {
         const inputOption = feedback.options.input
-        const input = await instance.data.getInput(inputOption)
+        const input = instance.data.getInput(inputOption)
 
         return input?.callAudioSource === feedback.options.source
       },
@@ -60,7 +60,7 @@ export const getVideoCallFeedbacks = (instance: VMixInstance): CompanionFeedback
       ],
       callback: async (feedback) => {
         const inputOption = feedback.options.input
-        const input = await instance.data.getInput(inputOption)
+        const input = instance.data.getInput(inputOption)
 
         return input?.callVideoSource === feedback.options.source
       },

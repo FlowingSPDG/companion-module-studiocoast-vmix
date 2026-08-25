@@ -136,7 +136,7 @@ export const getAudioFeedbacks = (instance: VMixInstance): CompanionFeedbackDefi
       options: [options.input],
       callback: async (feedback) => {
         const inputOption = feedback.options.input
-        const input = await instance.data.getInput(inputOption)
+        const input = instance.data.getInput(inputOption)
 
         return input?.muted || false
       },
@@ -150,7 +150,7 @@ export const getAudioFeedbacks = (instance: VMixInstance): CompanionFeedbackDefi
       options: [options.input],
       callback: async (feedback) => {
         const inputOption = feedback.options.input
-        const input = await instance.data.getInput(inputOption)
+        const input = instance.data.getInput(inputOption)
 
         return input?.audioAuto || false
       },
@@ -164,7 +164,7 @@ export const getAudioFeedbacks = (instance: VMixInstance): CompanionFeedbackDefi
       options: [options.input],
       callback: async (feedback) => {
         const inputOption = feedback.options.input
-        const input = await instance.data.getInput(inputOption)
+        const input = instance.data.getInput(inputOption)
 
         return input?.solo || false
       },
@@ -178,7 +178,7 @@ export const getAudioFeedbacks = (instance: VMixInstance): CompanionFeedbackDefi
       options: [options.input, options.audioBusMaster],
       callback: async (feedback) => {
         const inputOption = feedback.options.input
-        const input = await instance.data.getInput(inputOption)
+        const input = instance.data.getInput(inputOption)
 
         if (feedback.options.value === 'Selected') {
           const bus = instance.routingData.bus === 'Master' ? 'M' : instance.routingData.bus
@@ -341,7 +341,7 @@ export const getAudioFeedbacks = (instance: VMixInstance): CompanionFeedbackDefi
       ],
       callback: async (feedback) => {
         const inputOption = feedback.options.input
-        const input = await instance.data.getInput(inputOption)
+        const input = instance.data.getInput(inputOption)
 
         // Detect if there is sound enabled on an input
         if (!input?.meterF1 || !input?.meterF2) {
@@ -441,7 +441,7 @@ export const getAudioFeedbacks = (instance: VMixInstance): CompanionFeedbackDefi
       ],
       callback: async (feedback) => {
         const inputOption = feedback.options.input
-        const input = await instance.data.getInput(inputOption)
+        const input = instance.data.getInput(inputOption)
 
         if (input?.volume === undefined) return false
 
@@ -499,7 +499,7 @@ export const getAudioFeedbacks = (instance: VMixInstance): CompanionFeedbackDefi
       callback: async (feedback) => {
         if (!feedback.image) return {}
         const inputOption = feedback.options.input
-        const input = await instance.data.getInput(inputOption)
+        const input = instance.data.getInput(inputOption)
 
         if (!input || input.meterF1 === undefined || input.meterF2 === undefined) {
           return {}

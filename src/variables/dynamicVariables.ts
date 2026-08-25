@@ -89,12 +89,13 @@ export type DynamicVariablesSchema = {
 export const dynamicDefinitions = async (instance: VMixInstance): Promise<CompanionVariableDefinitions> => {
   const definitions: CompanionVariableDefinitions = {}
   const dynamicIDs = [0, 1, 2, 3]
+  const activeMixes = instance.data.mix.filter((mix) => mix.active)
 
   for (const dynamic of dynamicIDs) {
     if (instance.config.variablesShowDynamicInputs) definitions[`dynamic_input_${dynamic + 1}`] = { name: `Dynamic Input ${dynamic + 1}` }
     if (instance.config.variablesShowDynamicValues) definitions[`dynamic_value_${dynamic + 1}`] = { name: `Dynamic Value ${dynamic + 1}` }
 
-    const input = await instance.data.getInput(instance.data.dynamicInput[dynamic]?.value)
+    const input = instance.data.getInput(instance.data.dynamicInput[dynamic]?.value)
 
     if (input && instance.config.variablesShowDynamicInputs) {
       definitions[`dynamic_input_${dynamic + 1}_name`] = { name: `Dynamic Input ${dynamic + 1} Short Title` }
@@ -103,12 +104,10 @@ export const dynamicDefinitions = async (instance: VMixInstance): Promise<Compan
       definitions[`dynamic_input_${dynamic + 1}_guid`] = { name: `Dynamic Input ${dynamic + 1} GUID` }
       definitions[`dynamic_input_${dynamic + 1}_type`] = { name: `Dynamic Input ${dynamic + 1} Type` }
 
-      instance.data.mix
-        .filter((mix) => mix.active)
-        .forEach((mix) => {
-          definitions[`dynamic_input_${dynamic + 1}_mix_${mix.number}_tally_preview`] = { name: `Dynamic Input ${dynamic + 1} Mix ${mix.number} Tally Preview` }
-          definitions[`dynamic_input_${dynamic + 1}_mix_${mix.number}_tally_program`] = { name: `Dynamic Input ${dynamic + 1} Mix ${mix.number} Tally Program` }
-        })
+      for (const mix of activeMixes) {
+        definitions[`dynamic_input_${dynamic + 1}_mix_${mix.number}_tally_preview`] = { name: `Dynamic Input ${dynamic + 1} Mix ${mix.number} Tally Preview` }
+        definitions[`dynamic_input_${dynamic + 1}_mix_${mix.number}_tally_program`] = { name: `Dynamic Input ${dynamic + 1} Mix ${mix.number} Tally Program` }
+      }
 
       definitions[`dynamic_input_${dynamic + 1}_playing`] = { name: `Dynamic Input ${dynamic + 1} Playing` }
       definitions[`dynamic_input_${dynamic + 1}_loop`] = { name: `Dynamic Input ${dynamic + 1} Loop` }
@@ -216,7 +215,7 @@ export const dynamicDefinitions = async (instance: VMixInstance): Promise<Compan
           definitions[`dynamic_input_${dynamic + 1}_meterf2_linear`] = { name: `Dynamic Input ${dynamic + 1} MeterF2 Linear` }
         }
 
-        const audioLevel = instance.data.audioLevels.find((level) => level.key === input.key)
+        const audioLevel = instance.data.getAudioLevel(input.key)
         if (audioLevel) {
           definitions[`dynamic_input_${dynamic + 1}_meterf1_avg_1s`] = { name: `Dynamic Input ${dynamic + 1} Meter F1 Average 1s` }
           definitions[`dynamic_input_${dynamic + 1}_meterf2_avg_1s`] = { name: `Dynamic Input ${dynamic + 1} Meter F2 Average 1s` }
@@ -266,7 +265,7 @@ export const dynamicValues = async (instance: VMixInstance): Promise<DynamicVari
     if (instance.config.variablesShowDynamicValues) variables[`dynamic_value_${dynamic + 1}`] = instance.data.dynamicValue[dynamic]?.value || ''
 
     if (instance.config.variablesShowDynamicInputs && instance.data.dynamicInput[dynamic]?.value) {
-      const input = await instance.data.getInput(instance.data.dynamicInput[dynamic]?.value)
+      const input = instance.data.getInput(instance.data.dynamicInput[dynamic]?.value)
 
       if (input) {
         variables[`dynamic_input_${dynamic + 1}_name`] = input.shortTitle || input.title
@@ -358,7 +357,7 @@ export const dynamicValues = async (instance: VMixInstance): Promise<DynamicVari
           }
 
           for (const layer of input.overlay || []) {
-            const overlayInput = await instance.data.getInput(layer.key)
+            const overlayInput = instance.data.getInput(layer.key)
             let overlayinputName = ''
 
             if (overlayInput)
@@ -467,7 +466,7 @@ export const dynamicValues = async (instance: VMixInstance): Promise<DynamicVari
             variables[`dynamic_input_${dynamic + 1}_meterf2_linear`] = Math.round(volumeToLinear(input.meterF2 * 100))
           }
 
-          const audioLevel = instance.data.audioLevels.find((level) => level.key === input.key)
+          const audioLevel = instance.data.getAudioLevel(input.key)
           if (audioLevel) {
             const audioLevelData = instance.data.getAudioLevelData(audioLevel)
             variables[`dynamic_input_${dynamic + 1}_meterf1_avg_1s`] = volumeTodB(audioLevelData.s1MeterF1Avg * 100).toFixed(1)

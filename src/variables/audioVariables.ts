@@ -37,7 +37,7 @@ export const audioDefinitions = (instance: VMixInstance): CompanionVariableDefin
       if (bus !== 'Headphones') {
         for (let i = 1; i < 3; i++) {
           const audioLevelID = bus === 'Master' ? 'master' : `bus${bus}`
-          const audioLevel = instance.data.audioLevels.find((level) => level.key === audioLevelID)
+          const audioLevel = instance.data.getAudioLevel(audioLevelID)
           if (audioLevel) {
             definitions[`bus_${bus.toLowerCase()}_meterf${i}`] = { name: `Bus ${bus} MeterF${i}` }
             definitions[`bus_${bus.toLowerCase()}_meterf${i}_avg_1s`] = { name: `Bus ${bus} MeterF${i} Avg 1s` }
@@ -102,7 +102,7 @@ export const audioValues = async (instance: VMixInstance): Promise<AudioVariable
 
       if (id !== 'Headphones') {
         const audioLevelID = id === 'Master' ? 'master' : `bus${id}`
-        const audioLevel = instance.data.audioLevels.find((level) => level.key === audioLevelID)
+        const audioLevel = instance.data.getAudioLevel(audioLevelID)
         if (audioLevel) {
           variables[`bus_${id.toLowerCase()}_meterf1`] = meterF1
           variables[`bus_${id.toLowerCase()}_meterf2`] = meterF2
