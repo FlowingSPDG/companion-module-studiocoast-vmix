@@ -21,7 +21,7 @@ export const layerValues = async (instance: VMixInstance): Promise<LayerVariable
     layer_routing_layer: '',
   }
 
-  const layerRoutingInput = await instance.data.getInput(instance.routingData.layer.destinationInput || '')
+  const layerRoutingInput = instance.data.getInput(instance.routingData.layer.destinationInput || '')
 
   if (layerRoutingInput) {
     const inputName = layerRoutingInput.shortTitle ? layerRoutingInput.shortTitle.replace(/[^a-z0-9-_.]+/gi, '') : layerRoutingInput.title.replace(/[^a-z0-9-_.]+/gi, '')

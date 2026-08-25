@@ -124,7 +124,7 @@ export const httpHandler = async (instance: VMixInstance, request: CompanionHTTP
 
         for (let i = 0; i < 10; i++) {
           const findLayer = selectedInput.overlay?.find((layer) => layer.index === i)
-          const layerInput = findLayer ? await instance.data.getInput(findLayer.key) : null
+          const layerInput = findLayer ? instance.data.getInput(findLayer.key) : null
 
           if (layerInput !== null) {
             const parsedInput = parseInput(layerInput)
@@ -148,7 +148,7 @@ export const httpHandler = async (instance: VMixInstance, request: CompanionHTTP
         }
 
         for (const layer of selectedInput?.overlay || []) {
-          const layerInput = await instance.data.getInput(layer.key)
+          const layerInput = instance.data.getInput(layer.key)
 
           if (layerInput) {
             const parsedInput = parseInput(layerInput)

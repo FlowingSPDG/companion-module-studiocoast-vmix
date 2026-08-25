@@ -277,7 +277,7 @@ export class Activators {
    * @description Updates input routing to busses
    */
   private readonly handlerInputAudio = async (params: string[]): Promise<void> => {
-    const input = await this.instance.data.getInput(params[1])
+    const input = this.instance.data.getInput(params[1])
 
     if (!input || !input.audioBusses) {
       return
@@ -304,7 +304,7 @@ export class Activators {
    * @description Updates input playing, volume, mute, and solo
    */
   private readonly handlerInputState = async (params: string[]): Promise<void> => {
-    const input = await this.instance.data.getInput(params[1])
+    const input = this.instance.data.getInput(params[1])
 
     if (!input) {
       return
@@ -367,7 +367,7 @@ export class Activators {
           this.instance.data.mix[mix][tallyType].push(input.key)
 
           for (const layer of input.overlay || []) {
-            const layerInput = await this.instance.data.getInput(layer.key)
+            const layerInput = this.instance.data.getInput(layer.key)
 
             if (layerInput) {
               checkTally(layerInput)
@@ -378,7 +378,7 @@ export class Activators {
         return
       }
 
-      const input = await this.instance.data.getInput(inputNumber)
+      const input = this.instance.data.getInput(inputNumber)
 
       if (input) {
         checkTally(input)
@@ -387,7 +387,7 @@ export class Activators {
       const overlays = this.instance.data.overlays.filter((overlay) => overlay.input !== null)
 
       for (const overlay of overlays) {
-        const overlayInput = await this.instance.data.getInput(overlay.input as number)
+        const overlayInput = this.instance.data.getInput(overlay.input as number)
 
         if (overlayInput) {
           checkTally(overlayInput)
@@ -460,7 +460,7 @@ export class Activators {
    * @description
    */
   private readonly handlerVideoCall = async (params: string[]): Promise<void> => {
-    const input = await this.instance.data.getInput(params[1])
+    const input = this.instance.data.getInput(params[1])
 
     if (!input) return
 
@@ -487,7 +487,7 @@ export class Activators {
    */
   private readonly handlerVolumeChannelMixer = async (params: string[]): Promise<void> => {
     const channel = parseInt(params[0].substring(23), 10)
-    const input = await this.instance.data.getInput(params[1])
+    const input = this.instance.data.getInput(params[1])
     const value = parseFloat(params[2])
 
     if (input) {

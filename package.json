@@ -13,9 +13,7 @@
 		"lint:test": "eslint",
 		"test": "jest",
 		"genDocs:shortcuts": "node ./scripts/shortcutDocs.js",
-		"bench": "yarn build && node dist/bench/benchmark-before-after.js",
-		"bench:wasm:build": "cd rust/vmix_xml && wasm-pack build --release --target nodejs --out-dir ../../src/bench/wasm/pkg",
-		"bench:rust": "yarn bench:wasm:build && yarn bench"
+		"bench": "yarn build && node dist/bench/benchmark-before-after.js"
 	},
 	"repository": {
 		"type": "git",

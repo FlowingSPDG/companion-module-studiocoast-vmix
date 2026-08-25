@@ -32,7 +32,7 @@ export interface Config {
   debugSettings: boolean
   debugVariableDefinitionDelay: number
   debugVersionUpdateNotifications: boolean
-  xmlParser: 'xml2js' | 'fast-xml-parser' | 'rust-wasm' | 'vmix'
+  xmlParser: 'xml2js' | 'fast-xml-parser' | 'vmix'
 
   audioPresets: Record<string, AudioPreset>
 
@@ -345,14 +345,14 @@ export const getConfigFields = (): SomeCompanionConfigField[] => {
       id: 'xmlParser',
       label: 'XML Parser',
       width: 12,
-      default: 'xml2js',
+      default: 'vmix',
       choices: [
-        { id: 'xml2js', label: 'xml2js (default)' },
+        { id: 'vmix', label: 'vMix JS parser (default)' },
+        { id: 'xml2js', label: 'xml2js' },
         { id: 'fast-xml-parser', label: 'fast-xml-parser' },
-        // { id: 'rust-wasm', label: 'Rust WASM (quick-xml)' }, // PR #2で追加予定
       ],
-      tooltip: 'Select which XML parser implementation to use. Rust WASM may offer the best performance but requires WASM module to be built.',
-      isVisible: (config) => config.debugSettings === true,
+      tooltip: 'Parser used for the vMix XML API poll. The vMix JS parser is a schema-specific stack parser; xml2js is the historical default.',
+      isVisibleExpression: `$(options:debugSettings)`,
     },
   ]
 }

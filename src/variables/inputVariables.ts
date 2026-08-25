@@ -1,4 +1,4 @@
-import type { CompanionVariableDefinition, CompanionVariableDefinitions, JsonValue } from '@companion-module/base'
+import type { CompanionVariableDefinitions, JsonValue } from '@companion-module/base'
 import type VMixInstance from '../index.js'
 import { calcDuration, calcRemaining, volumeTodB, volumeToLinear } from '../utils.js'
 
@@ -87,15 +87,11 @@ export type InputVariablesSchema = Partial<{
 }>
 
 export const inputDefinitions = (instance: VMixInstance): CompanionVariableDefinitions => {
-  const definitions: CompanionVariableDefinitions<InputVariablesSchema> = {
+  const filteredVariables: CompanionVariableDefinitions<InputVariablesSchema> = {
     input_any_solo: { name: 'Input Any Solo' },
   }
 
-  const inputNumberVariables = new Map<string, CompanionVariableDefinition>()
-  const inputNameVariables = new Map<string, CompanionVariableDefinition>()
-  const inputKeyVariables = new Map<string, CompanionVariableDefinition>()
-
-  definitions
+  const activeMixes = instance.data.mix.filter((mix) => mix.active)
 
   instance.data.inputs.forEach((input) => {
     let inputName = input.shortTitle ? input.shortTitle : input.title
@@ -110,61 +106,55 @@ export const inputDefinitions = (instance: VMixInstance): CompanionVariableDefin
       if (!instance.config.variablesShowInputs && index === 1) continue
       if (!instance.config.variablesShowInputGUID && index === 2) continue
 
-      let inputSet = inputNumberVariables
-      if (index === 1) inputSet = inputNameVariables
-      if (index === 2) inputSet = inputKeyVariables
+      filteredVariables[`input_${type}_name`] = { name: `Input ${title} Short Title` }
+      filteredVariables[`input_${type}_full_title`] = { name: `Input ${title} Full Title` }
+      filteredVariables[`input_${type}_guid`] = { name: `Input ${title} GUID` }
+      filteredVariables[`input_${type}_type`] = { name: `Input ${title} Type` }
+      filteredVariables[`input_${type}_number`] = { name: `Input ${title} Number` }
 
-      inputSet.set(`input_${type}_name`, { name: `Input ${title} Short Title` })
-      inputSet.set(`input_${type}_full_title`, { name: `Input ${title} Full Title` })
-      inputSet.set(`input_${type}_guid`, { name: `Input ${title} GUID` })
-      inputSet.set(`input_${type}_type`, { name: `Input ${title} Type` })
-      inputSet.set(`input_${type}_number`, { name: `Input ${title} Number` })
+      for (const mix of activeMixes) {
+        filteredVariables[`input_${type}_mix_${mix.number}_tally_preview`] = { name: `Input ${title} Mix ${mix.number} Tally Preview` }
+        filteredVariables[`input_${type}_mix_${mix.number}_tally_program`] = { name: `Input ${title} Mix ${mix.number} Tally Program` }
+      }
 
-      instance.data.mix
-        .filter((mix) => mix.active)
-        .forEach((mix) => {
-          inputSet.set(`input_${type}_mix_${mix.number}_tally_preview`, { name: `Input ${title} Mix ${mix.number} Tally Preview` })
-          inputSet.set(`input_${type}_mix_${mix.number}_tally_program`, { name: `Input ${title} Mix ${mix.number} Tally Program` })
-        })
-
-      inputSet.set(`input_${type}_playing`, { name: `Input ${title} Playing` })
-      inputSet.set(`input_${type}_loop`, { name: `Input ${title} Loop` })
-      inputSet.set(`input_${type}_mute`, { name: `Input ${title} Muted` })
-      inputSet.set(`input_${type}_audio`, { name: `Input ${title} Audio` })
-      inputSet.set(`input_${type}_solo`, { name: `Input ${title} Solo` })
+      filteredVariables[`input_${type}_playing`] = { name: `Input ${title} Playing` }
+      filteredVariables[`input_${type}_loop`] = { name: `Input ${title} Loop` }
+      filteredVariables[`input_${type}_mute`] = { name: `Input ${title} Muted` }
+      filteredVariables[`input_${type}_audio`] = { name: `Input ${title} Audio` }
+      filteredVariables[`input_${type}_solo`] = { name: `Input ${title} Solo` }
 
       if (input.duration > 1) {
-        inputSet.set(`input_${type}_duration`, { name: `Input ${title} Duration` })
+        filteredVariables[`input_${type}_duration`] = { name: `Input ${title} Duration` }
       }
 
       if (input.position !== undefined) {
-        inputSet.set(`input_${type}_position`, { name: `Input ${title} Position` })
-        inputSet.set(`input_${type}_remaining`, { name: `Input ${title} Remaining` })
-        inputSet.set(`input_${type}_remaining_ss`, { name: `Input ${title} Remaining ss` })
-        inputSet.set(`input_${type}_remaining_ss.ms`, { name: `Input ${title} Remaining ss.ms` })
-        inputSet.set(`input_${type}_remaining_mm.ss`, { name: `Input ${title} Remaining mm:ss` })
-        inputSet.set(`input_${type}_remaining_mm.ss.ms`, { name: `Input ${title} Remaining mm:ss.ms` })
+        filteredVariables[`input_${type}_position`] = { name: `Input ${title} Position` }
+        filteredVariables[`input_${type}_remaining`] = { name: `Input ${title} Remaining` }
+        filteredVariables[`input_${type}_remaining_ss`] = { name: `Input ${title} Remaining ss` }
+        filteredVariables[`input_${type}_remaining_ss.ms`] = { name: `Input ${title} Remaining ss.ms` }
+        filteredVariables[`input_${type}_remaining_mm.ss`] = { name: `Input ${title} Remaining mm:ss` }
+        filteredVariables[`input_${type}_remaining_mm.ss.ms`] = { name: `Input ${title} Remaining mm:ss.ms` }
       }
 
       if (instance.config.variablesShowInputLayers) {
         for (let i = 1; i < 11; i++) {
-          inputSet.set(`input_${type}_layer_${i}_name`, { name: `Input ${title} layer ${i} Name` })
-          inputSet.set(`input_${type}_layer_${i}_number`, { name: `Input ${title} layer ${i} Number` })
-          inputSet.set(`input_${type}_layer_${i}_key`, { name: `Input ${title} layer ${i} Key` })
+          filteredVariables[`input_${type}_layer_${i}_name`] = { name: `Input ${title} layer ${i} Name` }
+          filteredVariables[`input_${type}_layer_${i}_number`] = { name: `Input ${title} layer ${i} Number` }
+          filteredVariables[`input_${type}_layer_${i}_key`] = { name: `Input ${title} layer ${i} Key` }
 
           if (instance.config.variablesShowInputLayerPosition) {
-            inputSet.set(`input_${type}_layer_${i}_panx`, { name: `Input ${title} layer ${i} Pan X (Percent)` })
-            inputSet.set(`input_${type}_layer_${i}_pany`, { name: `Input ${title} layer ${i} Pan Y (Percent)` })
-            inputSet.set(`input_${type}_layer_${i}_x`, { name: `Input ${title} layer ${i} Pan X (Pixels)` })
-            inputSet.set(`input_${type}_layer_${i}_y`, { name: `Input ${title} layer ${i} Pan Y (Pixels)` })
-            inputSet.set(`input_${type}_layer_${i}_zoomx`, { name: `Input ${title} layer ${i} Zoom X` })
-            inputSet.set(`input_${type}_layer_${i}_zoomy`, { name: `Input ${title} layer ${i} Zoom Y` })
-            inputSet.set(`input_${type}_layer_${i}_width`, { name: `Input ${title} layer ${i} Width` })
-            inputSet.set(`input_${type}_layer_${i}_height`, { name: `Input ${title} layer ${i} Height` })
-            inputSet.set(`input_${type}_layer_${i}_cropx1`, { name: `Input ${title} layer ${i} Crop X1` })
-            inputSet.set(`input_${type}_layer_${i}_cropx2`, { name: `Input ${title} layer ${i} Crop X2` })
-            inputSet.set(`input_${type}_layer_${i}_cropy1`, { name: `Input ${title} layer ${i} Crop Y1` })
-            inputSet.set(`input_${type}_layer_${i}_cropy2`, { name: `Input ${title} layer ${i} Crop Y2` })
+            filteredVariables[`input_${type}_layer_${i}_panx`] = { name: `Input ${title} layer ${i} Pan X (Percent)` }
+            filteredVariables[`input_${type}_layer_${i}_pany`] = { name: `Input ${title} layer ${i} Pan Y (Percent)` }
+            filteredVariables[`input_${type}_layer_${i}_x`] = { name: `Input ${title} layer ${i} Pan X (Pixels)` }
+            filteredVariables[`input_${type}_layer_${i}_y`] = { name: `Input ${title} layer ${i} Pan Y (Pixels)` }
+            filteredVariables[`input_${type}_layer_${i}_zoomx`] = { name: `Input ${title} layer ${i} Zoom X` }
+            filteredVariables[`input_${type}_layer_${i}_zoomy`] = { name: `Input ${title} layer ${i} Zoom Y` }
+            filteredVariables[`input_${type}_layer_${i}_width`] = { name: `Input ${title} layer ${i} Width` }
+            filteredVariables[`input_${type}_layer_${i}_height`] = { name: `Input ${title} layer ${i} Height` }
+            filteredVariables[`input_${type}_layer_${i}_cropx1`] = { name: `Input ${title} layer ${i} Crop X1` }
+            filteredVariables[`input_${type}_layer_${i}_cropx2`] = { name: `Input ${title} layer ${i} Crop X2` }
+            filteredVariables[`input_${type}_layer_${i}_cropy1`] = { name: `Input ${title} layer ${i} Crop Y1` }
+            filteredVariables[`input_${type}_layer_${i}_cropy2`] = { name: `Input ${title} layer ${i} Crop Y2` }
           }
         }
       }
@@ -172,144 +162,137 @@ export const inputDefinitions = (instance: VMixInstance): CompanionVariableDefin
       if (instance.config.variablesShowInputTitleIndex || instance.config.variablesShowInputTitleName) {
         input.text?.forEach((textLayer) => {
           if (instance.config.variablesShowInputTitleIndex) {
-            inputSet.set(`input_${type}_layer_${textLayer.index}_titletext`, { name: `Input ${title} layer ${textLayer.index} Title Text` })
+            filteredVariables[`input_${type}_layer_${textLayer.index}_titletext`] = { name: `Input ${title} layer ${textLayer.index} Title Text` }
           }
 
           if (instance.config.variablesShowInputTitleName) {
-            inputSet.set(`input_${type}_layer_${textLayer.name.replace(/[^a-z0-9-_.]+/gi, '')}_titletext`, {
+            filteredVariables[`input_${type}_layer_${textLayer.name.replace(/[^a-z0-9-_.]+/gi, '')}_titletext`] = {
               name: `Input ${title} layer ${textLayer.name} Title Text`,
-            })
+            }
           }
         })
 
         input.image?.forEach((imageLayer) => {
           if (instance.config.variablesShowInputTitleIndex) {
-            inputSet.set(`input_${type}_layer_${imageLayer.index}_titleimage`, { name: `Input ${title} layer ${imageLayer.index} Title Image` })
+            filteredVariables[`input_${type}_layer_${imageLayer.index}_titleimage`] = { name: `Input ${title} layer ${imageLayer.index} Title Image` }
           }
 
           if (instance.config.variablesShowInputTitleName) {
-            inputSet.set(`input_${type}_layer_${imageLayer.name.replace(/[^a-z0-9-_.]+/gi, '')}_titleimage`, {
+            filteredVariables[`input_${type}_layer_${imageLayer.name.replace(/[^a-z0-9-_.]+/gi, '')}_titleimage`] = {
               name: `Input ${title} layer ${imageLayer.name} Title Text`,
-            })
+            }
           }
         })
 
         input.color?.forEach((imageColor) => {
           if (instance.config.variablesShowInputTitleIndex) {
-            inputSet.set(`input_${type}_layer_${imageColor.index}_titlecolor`, { name: `Input ${title} layer ${imageColor.index} Title Color` })
+            filteredVariables[`input_${type}_layer_${imageColor.index}_titlecolor`] = { name: `Input ${title} layer ${imageColor.index} Title Color` }
           }
 
           if (instance.config.variablesShowInputTitleName) {
-            inputSet.set(`input_${type}_layer_${imageColor.name.replace(/[^a-z0-9-_.]+/gi, '')}_titlecolor`, {
+            filteredVariables[`input_${type}_layer_${imageColor.name.replace(/[^a-z0-9-_.]+/gi, '')}_titlecolor`] = {
               name: `Input ${title} layer ${imageColor.name} Title Text`,
-            })
+            }
           }
         })
       }
 
       if (input.type === 'PowerPoint') {
-        inputSet.set(`input_${type}_selected`, { name: `Input ${title} Selected Index` })
+        filteredVariables[`input_${type}_selected`] = { name: `Input ${title} Selected Index` }
       }
 
       if (input.type === 'VideoList' || input.type === 'VirtualSet' || input.type === 'Photos') {
-        inputSet.set(`input_${type}_selected`, { name: `Input ${title} Selected Position` })
-        inputSet.set(`input_${type}_selectedindex`, { name: `Input ${title} Selected Index` })
-        inputSet.set(`input_${type}_selected_name`, { name: `Input ${title} Selected Name` })
+        filteredVariables[`input_${type}_selected`] = { name: `Input ${title} Selected Position` }
+        filteredVariables[`input_${type}_selectedindex`] = { name: `Input ${title} Selected Index` }
+        filteredVariables[`input_${type}_selected_name`] = { name: `Input ${title} Selected Name` }
       }
 
       if (input.list && instance.config.variablesShowInputList) {
         input.list.forEach((listItem) => {
-          inputSet.set(`input_${type}_list_${listItem.index + 1}_name`, { name: `Input ${title} List ${listItem.index + 1} Name` })
-          inputSet.set(`input_${type}_list_${listItem.index + 1}_selected`, { name: `Input ${title} List ${listItem.index + 1} Selected` })
+          filteredVariables[`input_${type}_list_${listItem.index + 1}_name`] = { name: `Input ${title} List ${listItem.index + 1} Name` }
+          filteredVariables[`input_${type}_list_${listItem.index + 1}_selected`] = { name: `Input ${title} List ${listItem.index + 1} Selected` }
         })
       }
 
       if (input.type === 'VideoCall') {
-        inputSet.set(`input_${type}_call_password`, { name: `Input ${title} Call Password` })
-        inputSet.set(`input_${type}_call_connected`, { name: `Input ${title} Call Connected` })
-        inputSet.set(`input_${type}_call_video_source`, { name: `Input ${title} Call Video Source` })
-        inputSet.set(`input_${type}_call_audio_source`, { name: `Input ${title} Call Audio Source` })
+        filteredVariables[`input_${type}_call_password`] = { name: `Input ${title} Call Password` }
+        filteredVariables[`input_${type}_call_connected`] = { name: `Input ${title} Call Connected` }
+        filteredVariables[`input_${type}_call_video_source`] = { name: `Input ${title} Call Video Source` }
+        filteredVariables[`input_${type}_call_audio_source`] = { name: `Input ${title} Call Audio Source` }
       }
 
       if (instance.config.variablesShowInputVolume) {
-        inputSet.set(`input_${type}_volume`, { name: `Input ${title} Volume` })
-        inputSet.set(`input_${type}_volume_db`, { name: `Input ${title} Volume dB` })
-        inputSet.set(`input_${type}_volume_linear`, { name: `Input ${title} Volume Linear` })
+        filteredVariables[`input_${type}_volume`] = { name: `Input ${title} Volume` }
+        filteredVariables[`input_${type}_volume_db`] = { name: `Input ${title} Volume dB` }
+        filteredVariables[`input_${type}_volume_linear`] = { name: `Input ${title} Volume Linear` }
 
         if (input.volumeF1 !== undefined) {
-          inputSet.set(`input_${type}_volume_f1`, { name: `Input ${title} Volume F1` })
-          inputSet.set(`input_${type}_volume_f1_db`, { name: `Input ${title} Volume F1 dB` })
-          inputSet.set(`input_${type}_volume_f1_linear`, { name: `Input ${title} Volume F1 Linear` })
+          filteredVariables[`input_${type}_volume_f1`] = { name: `Input ${title} Volume F1` }
+          filteredVariables[`input_${type}_volume_f1_db`] = { name: `Input ${title} Volume F1 dB` }
+          filteredVariables[`input_${type}_volume_f1_linear`] = { name: `Input ${title} Volume F1 Linear` }
         }
 
         if (input.volumeF2 !== undefined) {
-          inputSet.set(`input_${type}_volume_f2`, { name: `Input ${title} Volume F2` })
-          inputSet.set(`input_${type}_volume_f2_db`, { name: `Input ${title} Volume F2 dB` })
-          inputSet.set(`input_${type}_volume_f2_linear`, { name: `Input ${title} Volume F2 Linear` })
+          filteredVariables[`input_${type}_volume_f2`] = { name: `Input ${title} Volume F2` }
+          filteredVariables[`input_${type}_volume_f2_db`] = { name: `Input ${title} Volume F2 dB` }
+          filteredVariables[`input_${type}_volume_f2_linear`] = { name: `Input ${title} Volume F2 Linear` }
         }
 
         if (input.meterF1 !== undefined) {
-          inputSet.set(`input_${type}_meterf1`, { name: `Input ${title} MeterF1` })
+          filteredVariables[`input_${type}_meterf1`] = { name: `Input ${title} MeterF1` }
         }
 
         if (input.meterF2 !== undefined) {
-          inputSet.set(`input_${type}_meterf2`, { name: `Input ${title} MeterF2` })
+          filteredVariables[`input_${type}_meterf2`] = { name: `Input ${title} MeterF2` }
         }
 
-        const audioLevel = instance.data.audioLevels.find((level) => level.key === input.key)
-        if (audioLevel) {
-          inputSet.set(`input_${type}_meterf1_avg_1s`, { name: `Input ${title} Meter F1 Average 1s` })
-          inputSet.set(`input_${type}_meterf2_avg_1s`, { name: `Input ${title} Meter F2 Average 1s` })
-          inputSet.set(`input_${type}_meterf1_avg_3s`, { name: `Input ${title} Meter F1 Average 3s` })
-          inputSet.set(`input_${type}_meterf2_avg_3s`, { name: `Input ${title} Meter F2 Average 3s` })
-          inputSet.set(`input_${type}_meterf1_peak_1s`, { name: `Input ${title} Meter F1 Peak 1s` })
-          inputSet.set(`input_${type}_meterf2_peak_1s`, { name: `Input ${title} Meter F2 Peak 1s` })
-          inputSet.set(`input_${type}_meterf1_peak_3s`, { name: `Input ${title} Meter F1 Peak 3s` })
-          inputSet.set(`input_${type}_meterf2_peak_3s`, { name: `Input ${title} Meter F2 Peak 3s` })
+        if (instance.data.getAudioLevel(input.key)) {
+          filteredVariables[`input_${type}_meterf1_avg_1s`] = { name: `Input ${title} Meter F1 Average 1s` }
+          filteredVariables[`input_${type}_meterf2_avg_1s`] = { name: `Input ${title} Meter F2 Average 1s` }
+          filteredVariables[`input_${type}_meterf1_avg_3s`] = { name: `Input ${title} Meter F1 Average 3s` }
+          filteredVariables[`input_${type}_meterf2_avg_3s`] = { name: `Input ${title} Meter F2 Average 3s` }
+          filteredVariables[`input_${type}_meterf1_peak_1s`] = { name: `Input ${title} Meter F1 Peak 1s` }
+          filteredVariables[`input_${type}_meterf2_peak_1s`] = { name: `Input ${title} Meter F2 Peak 1s` }
+          filteredVariables[`input_${type}_meterf1_peak_3s`] = { name: `Input ${title} Meter F1 Peak 3s` }
+          filteredVariables[`input_${type}_meterf2_peak_3s`] = { name: `Input ${title} Meter F2 Peak 3s` }
         }
       }
 
-      inputSet.set(`input_${type}_framedelay`, { name: `Input ${title} Frame Delay` })
+      filteredVariables[`input_${type}_framedelay`] = { name: `Input ${title} Frame Delay` }
 
       if (instance.config.variablesShowInputPosition) {
-        inputSet.set(`input_${type}_position_panx`, { name: `Input ${title} Position Pan X` })
-        inputSet.set(`input_${type}_position_pany`, { name: `Input ${title} Position Pan Y` })
-        inputSet.set(`input_${type}_position_zoomx`, { name: `Input ${title} Position Zoom X` })
-        inputSet.set(`input_${type}_position_zoomy`, { name: `Input ${title} Position Zoom X` })
-        inputSet.set(`input_${type}_position_cropx1`, { name: `Input ${title} Position Crop X1` })
-        inputSet.set(`input_${type}_position_cropx2`, { name: `Input ${title} Position Crop X2` })
-        inputSet.set(`input_${type}_position_cropy1`, { name: `Input ${title} Position Crop Y1` })
-        inputSet.set(`input_${type}_position_cropy2`, { name: `Input ${title} Position Crop Y2` })
+        filteredVariables[`input_${type}_position_panx`] = { name: `Input ${title} Position Pan X` }
+        filteredVariables[`input_${type}_position_pany`] = { name: `Input ${title} Position Pan Y` }
+        filteredVariables[`input_${type}_position_zoomx`] = { name: `Input ${title} Position Zoom X` }
+        filteredVariables[`input_${type}_position_zoomy`] = { name: `Input ${title} Position Zoom X` }
+        filteredVariables[`input_${type}_position_cropx1`] = { name: `Input ${title} Position Crop X1` }
+        filteredVariables[`input_${type}_position_cropx2`] = { name: `Input ${title} Position Crop X2` }
+        filteredVariables[`input_${type}_position_cropy1`] = { name: `Input ${title} Position Crop Y1` }
+        filteredVariables[`input_${type}_position_cropy2`] = { name: `Input ${title} Position Crop Y2` }
       }
 
       if (instance.config.variablesShowInputCC) {
-        inputSet.set(`input_${type}_cc_hue`, { name: `Input ${title} Colour Correction Hue` })
-        inputSet.set(`input_${type}_cc_saturation`, { name: `Input ${title} Colour Correction Saturation` })
-        inputSet.set(`input_${type}_cc_liftr`, { name: `Input ${title} Colour Correction Lift R` })
-        inputSet.set(`input_${type}_cc_liftg`, { name: `Input ${title} Colour Correction Lift G` })
-        inputSet.set(`input_${type}_cc_liftb`, { name: `Input ${title} Colour Correction Lift B` })
-        inputSet.set(`input_${type}_cc_lifty`, { name: `Input ${title} Colour Correction Lift Y` })
-        inputSet.set(`input_${type}_cc_gammar`, { name: `Input ${title} Colour Correction Gamma R` })
-        inputSet.set(`input_${type}_cc_gammag`, { name: `Input ${title} Colour Correction Gamma G` })
-        inputSet.set(`input_${type}_cc_gammab`, { name: `Input ${title} Colour Correction Gamma B` })
-        inputSet.set(`input_${type}_cc_gammay`, { name: `Input ${title} Colour Correction Gamma Y` })
-        inputSet.set(`input_${type}_cc_gainr`, { name: `Input ${title} Colour Correction Gain R` })
-        inputSet.set(`input_${type}_cc_gaing`, { name: `Input ${title} Colour Correction Gain G` })
-        inputSet.set(`input_${type}_cc_gainb`, { name: `Input ${title} Colour Correction Gain B` })
-        inputSet.set(`input_${type}_cc_gainy`, { name: `Input ${title} Colour Correction Gain Y` })
+        filteredVariables[`input_${type}_cc_hue`] = { name: `Input ${title} Colour Correction Hue` }
+        filteredVariables[`input_${type}_cc_saturation`] = { name: `Input ${title} Colour Correction Saturation` }
+        filteredVariables[`input_${type}_cc_liftr`] = { name: `Input ${title} Colour Correction Lift R` }
+        filteredVariables[`input_${type}_cc_liftg`] = { name: `Input ${title} Colour Correction Lift G` }
+        filteredVariables[`input_${type}_cc_liftb`] = { name: `Input ${title} Colour Correction Lift B` }
+        filteredVariables[`input_${type}_cc_lifty`] = { name: `Input ${title} Colour Correction Lift Y` }
+        filteredVariables[`input_${type}_cc_gammar`] = { name: `Input ${title} Colour Correction Gamma R` }
+        filteredVariables[`input_${type}_cc_gammag`] = { name: `Input ${title} Colour Correction Gamma G` }
+        filteredVariables[`input_${type}_cc_gammab`] = { name: `Input ${title} Colour Correction Gamma B` }
+        filteredVariables[`input_${type}_cc_gammay`] = { name: `Input ${title} Colour Correction Gamma Y` }
+        filteredVariables[`input_${type}_cc_gainr`] = { name: `Input ${title} Colour Correction Gain R` }
+        filteredVariables[`input_${type}_cc_gaing`] = { name: `Input ${title} Colour Correction Gain G` }
+        filteredVariables[`input_${type}_cc_gainb`] = { name: `Input ${title} Colour Correction Gain B` }
+        filteredVariables[`input_${type}_cc_gainy`] = { name: `Input ${title} Colour Correction Gain Y` }
       }
 
       if (instance.config.variablesShowInputJSON) {
-        inputSet.set(`input_${type}_json`, { name: `Input ${title} JSON data` })
+        filteredVariables[`input_${type}_json`] = { name: `Input ${title} JSON data` }
       }
     }
   })
-
-  // Filter variables displayed based on Config settings
-  let filteredVariables: CompanionVariableDefinitions<InputVariablesSchema> = { ...definitions }
-  if (instance.config.variablesShowInputs) filteredVariables = { ...filteredVariables, ...Object.fromEntries(inputNameVariables) }
-  if (instance.config.variablesShowInputNumbers) filteredVariables = { ...filteredVariables, ...Object.fromEntries(inputNumberVariables) }
-  if (instance.config.variablesShowInputGUID) filteredVariables = { ...filteredVariables, ...Object.fromEntries(inputKeyVariables) }
 
   return filteredVariables
 }
@@ -318,6 +301,16 @@ export const inputValues = async (instance: VMixInstance): Promise<InputVariable
   const variables: InputVariablesSchema = {
     input_any_solo: instance.data.inputs.some((input) => input.solo).toString(),
   }
+
+  const activeMixTally = instance.data.mix
+    .filter((mix) => mix.active)
+    .map((mix) => ({
+      number: mix.number,
+      preview: mix.preview,
+      program: mix.program,
+      previewTally: new Set(mix.previewTally),
+      programTally: new Set(mix.programTally),
+    }))
 
   for (const input of instance.data.inputs) {
     const inputName = input.shortTitle ? input.shortTitle.replace(/[^a-z0-9-_.]+/gi, '') : input.title.replace(/[^a-z0-9-_.]+/gi, '')
@@ -329,6 +322,15 @@ export const inputValues = async (instance: VMixInstance): Promise<InputVariable
     }
     if (instance.config.variablesShowInputGUID) inputTypes.push(input.key)
 
+    const inputAudio = input.muted === undefined ? false : input.muted
+    const inputDuration = calcDuration(input)
+    const inputRemaining = calcRemaining(input)
+    const tallyFlags = activeMixTally.map((mix) => ({
+      number: mix.number,
+      preview: (mix.previewTally.has(input.key) || mix.preview === input.number).toString(),
+      program: (mix.programTally.has(input.key) || mix.program === input.number).toString(),
+    }))
+
     for (const type of inputTypes) {
       variables[`input_${type}_name`] = input.shortTitle || input.title
       variables[`input_${type}_full_title`] = input.title
@@ -336,17 +338,10 @@ export const inputValues = async (instance: VMixInstance): Promise<InputVariable
       variables[`input_${type}_guid`] = input.key
       variables[`input_${type}_type`] = input.type
 
-      instance.data.mix
-        .filter((mix) => mix.active)
-        .forEach((mix) => {
-          const tallyPreview = instance.data.mix[mix.number - 1].previewTally.includes(input.key) || instance.data.mix[mix.number - 1].preview === input.number
-          const tallyProgram = instance.data.mix[mix.number - 1].programTally.includes(input.key) || instance.data.mix[mix.number - 1].program === input.number
-
-          variables[`input_${type}_mix_${mix.number}_tally_preview`] = tallyPreview.toString()
-          variables[`input_${type}_mix_${mix.number}_tally_program`] = tallyProgram.toString()
-        })
-
-      const inputAudio = input.muted === undefined ? false : input.muted
+      for (const mix of tallyFlags) {
+        variables[`input_${type}_mix_${mix.number}_tally_preview`] = mix.preview
+        variables[`input_${type}_mix_${mix.number}_tally_program`] = mix.program
+      }
 
       variables[`input_${type}_playing`] = (input.state === 'Running').toString()
       variables[`input_${type}_loop`] = input.loop.toString()
@@ -354,26 +349,9 @@ export const inputValues = async (instance: VMixInstance): Promise<InputVariable
       variables[`input_${type}_audio`] = (!inputAudio).toString()
       variables[`input_${type}_solo`] = input.solo?.toString() || 'false'
 
-      if (input.duration > 1) {
-        const inPosition = input.markIn ? input.markIn : 0
-        const outPosition = input.markOut ? input.markOut : input.duration
-        const duration = outPosition - inPosition
-        const padding = (time: number): string => (time < 10 ? '0' + time : time + '')
-
-        const mm = (time: number): string => padding(Math.floor(time / 60000))
-        const ss = (time: number): string => padding(Math.floor(time / 1000) % 60)
-        const ms = (time: number): string => Math.floor((time / 100) % 10) + ''
-
-        variables[`input_${type}_duration`] = `${mm(duration)}:${ss(duration)}.${ms(duration)}`
-      }
-
-      const inputDuration = calcDuration(input)
-
       if (inputDuration !== null) {
         variables[`input_${type}_duration`] = `${inputDuration.mmssms}`
       }
-
-      const inputRemaining = calcRemaining(input)
 
       if (input.position !== undefined) {
         variables[`input_${type}_position`] = input.position.toString()
@@ -423,7 +401,7 @@ export const inputValues = async (instance: VMixInstance): Promise<InputVariable
         }
 
         for (const layer of input.overlay || []) {
-          const overlayInput = await instance.data.getInput(layer.key)
+          const overlayInput = instance.data.getInput(layer.key)
           let overlayinputName = ''
 
           if (overlayInput)
@@ -545,7 +523,7 @@ export const inputValues = async (instance: VMixInstance): Promise<InputVariable
           variables[`input_${type}_meterf2_linear`] = Math.round(volumeToLinear(input.meterF2 * 100))
         }
 
-        const audioLevel = instance.data.audioLevels.find((level) => level.key === input.key)
+        const audioLevel = instance.data.getAudioLevel(input.key)
         if (audioLevel) {
           const audioLevelData = instance.data.getAudioLevelData(audioLevel)
 

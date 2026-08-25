@@ -593,7 +593,7 @@ export const getTitleActions = (instance: VMixInstance, sendBasicCommand: SendBa
         },
       ],
       callback: async (action) => {
-        const input = await instance.data.getInput(action.options.input)
+        const input = instance.data.getInput(action.options.input)
 
         if (input === null) return
 

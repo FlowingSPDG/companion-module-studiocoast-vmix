@@ -35,7 +35,7 @@ export const overlayValues = async (instance: VMixInstance): Promise<OverlayVari
   const getOverlayInput = async (id: number): Promise<Input | null> => {
     const overlay = instance.data.overlays[id - 1]
 
-    return overlay && overlay.input !== null ? await instance.data.getInput(overlay.input) : null
+    return overlay && overlay.input !== null ? instance.data.getInput(overlay.input) : null
   }
 
   const overlays = [0, 1, 2, 3, 4, 5, 6, 7]

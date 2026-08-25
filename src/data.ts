@@ -2,10 +2,10 @@ import lodash from 'lodash'
 import { createModuleLogger } from '@companion-module/base'
 import type VMixInstance from './index.js'
 import { type FeedbackId } from './feedbacks/feedback.js'
-import { XmlParserAdapter } from './xml/adapter.js'
+import type { XmlParserAdapter } from './xml/adapter.js'
 import { Xml2jsAdapter } from './xml/xml2jsAdapter.js'
 import { FastXmlParserAdapter } from './xml/fxpAdapter.js'
-import { RustWasmAdapter } from './xml/rustWasmAdapter.js'
+import { VmixXmlAdapter } from './xml/vmixAdapter.js'
 
 export interface AudioBus {
   bus: 'master' | 'busA' | 'busB' | 'busC' | 'busD' | 'busE' | 'busF' | 'busG'
@@ -271,6 +271,7 @@ interface APIData {
 }
 
 const log = createModuleLogger('Data')
+const INPUT_NUMBER_PATTERN = /^\d+$/
 
 export class VMixData {
   instance: VMixInstance
@@ -367,14 +368,14 @@ export class VMixData {
    * @description Creates a parser adapter based on the instance configuration
    */
   private createParser(): XmlParserAdapter {
-    const parserType = this.instance.config.xmlParser || 'xml2js'
+    const parserType = this.instance.config.xmlParser || 'vmix'
+    if (parserType === 'xml2js') {
+      return new Xml2jsAdapter()
+    }
     if (parserType === 'fast-xml-parser') {
       return new FastXmlParserAdapter()
     }
-    if (parserType === 'rust-wasm') {
-      return new RustWasmAdapter()
-    }
-    return new Xml2jsAdapter()
+    return new VmixXmlAdapter()
   }
 
   /**
@@ -406,39 +407,44 @@ export class VMixData {
    * @returns AudioLevelData
    * @description parses an AudioLevel into 1 second and 3 second data
    */
+  public getAudioLevel(key: string): AudioLevel | undefined {
+    return this.audioLevelsMap.get(key)
+  }
+
   public getAudioLevelData(level: AudioLevel): AudioLevelData {
     const now = Math.floor(new Date().getTime() / 1000)
-    let s1 = 1000 / this.instance.config.apiPollInterval
-    let s3 = s1 * 3
-
-    if (s1 < 1) s1 = 1
-    if (s3 < 1) s3 = 1
-
-    const s1ArrF1 = level.meterF1.filter((level) => Math.floor(level.time.getTime() / 1000) === now - 1).map((level) => level.value)
-    const s1ArrF2 = level.meterF2.filter((level) => Math.floor(level.time.getTime() / 1000) === now - 1).map((level) => level.value)
-    const s3ArrF1 = level.meterF1.filter((level) => Math.floor(level.time.getTime() / 1000) < now && Math.floor(level.time.getTime() / 1000) > now - 4).map((level) => level.value)
-    const s3ArrF2 = level.meterF2.filter((level) => Math.floor(level.time.getTime() / 1000) < now && Math.floor(level.time.getTime() / 1000) > now - 4).map((level) => level.value)
-
+    const s1ArrF1: number[] = []
+    const s1ArrF2: number[] = []
+    const s3ArrF1: number[] = []
+    const s3ArrF2: number[] = []
     let s1MeterF1Peak = 0
     let s1MeterF2Peak = 0
     let s3MeterF1Peak = 0
     let s3MeterF2Peak = 0
 
-    s1ArrF1.forEach((level) => {
-      if (level > s1MeterF1Peak) s1MeterF1Peak = level
-    })
+    for (const sample of level.meterF1) {
+      const sec = Math.floor(sample.time.getTime() / 1000)
+      if (sec === now - 1) {
+        s1ArrF1.push(sample.value)
+        if (sample.value > s1MeterF1Peak) s1MeterF1Peak = sample.value
+      }
+      if (sec < now && sec > now - 4) {
+        s3ArrF1.push(sample.value)
+        if (sample.value > s3MeterF1Peak) s3MeterF1Peak = sample.value
+      }
+    }
 
-    s1ArrF2.forEach((level) => {
-      if (level > s1MeterF2Peak) s1MeterF2Peak = level
-    })
-
-    s3ArrF1.forEach((level) => {
-      if (level > s3MeterF1Peak) s3MeterF1Peak = level
-    })
-
-    s3ArrF2.forEach((level) => {
-      if (level > s3MeterF2Peak) s3MeterF2Peak = level
-    })
+    for (const sample of level.meterF2) {
+      const sec = Math.floor(sample.time.getTime() / 1000)
+      if (sec === now - 1) {
+        s1ArrF2.push(sample.value)
+        if (sample.value > s1MeterF2Peak) s1MeterF2Peak = sample.value
+      }
+      if (sec < now && sec > now - 4) {
+        s3ArrF2.push(sample.value)
+        if (sample.value > s3MeterF2Peak) s3MeterF2Peak = sample.value
+      }
+    }
 
     return {
       s1MeterF1Avg: s1ArrF1.reduce((a, b) => a + b, 0) / s1ArrF1.length,
@@ -457,11 +463,10 @@ export class VMixData {
    * @returns Input or null if not found
    * @description any instance variables are parsed, and then input numbers take priority over other types
    */
-  public async getInput(value: string | number): Promise<Input | null> {
-    const int = RegExp(/^\d+$/)
+  public getInput(value: string | number): Input | null {
     let input: Input | null | undefined
 
-    if (typeof value === 'number' || int.test(value)) {
+    if (typeof value === 'number' || INPUT_NUMBER_PATTERN.test(value)) {
       const num = typeof value === 'number' ? value : parseInt(value, 10)
       input = this.inputsByNumberMap.get(num) || null
     } else {
@@ -478,8 +483,8 @@ export class VMixData {
    * @param value accepts input number, shortTitle, title, GUID, or instance variable
    * @returns shortTitle, title, or an empty string
    */
-  public async getInputTitle(value: string | number): Promise<string> {
-    const input = await this.getInput(value)
+  public getInputTitle(value: string | number): string {
+    const input = this.getInput(value)
 
     return input ? input.shortTitle || input.title : ''
   }
@@ -490,9 +495,8 @@ export class VMixData {
    */
   private async parse(data: string): Promise<APIData> {
     return this.parser.parse(data).then((parsedData: any) => {
-      // fast-xml-parser returns the root element directly, xml2js wraps it
       if (parsedData.vmix) {
-        parsedData = parsedData.vmix
+        parsedData = Array.isArray(parsedData.vmix) ? parsedData.vmix[0] : parsedData.vmix
       }
       const version = parsedData.version[0] || ''
       const majorVersion = parseInt(version.split('.')[0])
@@ -797,16 +801,18 @@ export class VMixData {
 
           busData.push(bus)
 
-          const audioLevel = this.audioLevels.find((level) => level.key === key)
+          const audioLevel = this.audioLevelsMap.get(key)
           const now = new Date()
 
           if (!audioLevel) {
-            this.audioLevels.push({
+            const created: AudioLevel = {
               key,
               type: 'bus',
               meterF1: [{ time: now, value: bus.meterF1 }],
               meterF2: [{ time: now, value: bus.meterF2 }],
-            })
+            }
+            this.audioLevels.push(created)
+            this.audioLevelsMap.set(key, created)
           } else {
             audioLevel.meterF1.push({ time: now, value: bus.meterF1 })
             audioLevel.meterF2.push({ time: now, value: bus.meterF2 })
@@ -1027,22 +1033,16 @@ export class VMixData {
         }
       })
 
-      // Clean up removed inputs from channel mixer
+      const inputKeys = new Set(newData.inputs.map((input) => input.key))
+
       Object.keys(newData.channelMixer).forEach((key) => {
-        if (!newData.inputs.map((input) => input.key).includes(key)) {
+        if (!inputKeys.has(key)) {
           delete newData.channelMixer[key]
         }
       })
 
-      // Clean up Audio levels for removed inputs
-      this.audioLevels = this.audioLevels.filter((level) => {
-        let inputFound = false
-        newData.inputs.forEach((input) => {
-          if (input.key === level.key) inputFound = true
-        })
-
-        return inputFound || level.type === 'bus'
-      })
+      this.audioLevels = this.audioLevels.filter((level) => level.type === 'bus' || inputKeys.has(level.key))
+      this.audioLevelsMap = new Map(this.audioLevels.map((level) => [level.key, level]))
 
       return newData
     })
@@ -1066,9 +1066,7 @@ export class VMixData {
     // Check inputs for additions/deletions or change in index order (optimized)
     const inputCheck =
       newData.inputs.length !== this.inputs.length ||
-      (newData.inputs.length > 0 &&
-        (newData.inputs[0].key !== this.inputs[0]?.key ||
-          newData.inputs[newData.inputs.length - 1].key !== this.inputs[this.inputs.length - 1]?.key))
+      (newData.inputs.length > 0 && (newData.inputs[0].key !== this.inputs[0]?.key || newData.inputs[newData.inputs.length - 1].key !== this.inputs[this.inputs.length - 1]?.key))
 
     // Copy any existing Channel Mixer data from activator updates (optimized with Map)
     newData.inputs.forEach((input) => {
@@ -1119,12 +1117,12 @@ export class VMixData {
     }
 
     // Update feedbacks for first load, changes handled by Activators
-    if (!this.loaded && (!lodash.isEqual(newData.inputs, this.inputs) || inputCheck)) {
+    if (!this.loaded && (inputCheck || !lodash.isEqual(newData.inputs, this.inputs))) {
       changes.add('inputVolumeLevel')
     }
 
     // Update feedback if new data differs from previous data
-    if (!lodash.isEqual(newData.inputs, this.inputs) || inputCheck) {
+    if (inputCheck || !lodash.isEqual(newData.inputs, this.inputs)) {
       changes.add('videoTimer')
       changes.add('inputAudio')
       changes.add('inputSolo')

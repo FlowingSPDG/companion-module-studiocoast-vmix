@@ -55,7 +55,7 @@ export const getTallyFeedbacks = (instance: VMixInstance): CompanionFeedbackDefi
           }
         }
 
-        const input = await instance.data.getInput(feedback.options.input)
+        const input = instance.data.getInput(feedback.options.input)
         const inputState = checkInput(input)
 
         if (inputState === 1) {
@@ -121,7 +121,7 @@ export const getTallyFeedbacks = (instance: VMixInstance): CompanionFeedbackDefi
           }
         }
 
-        const input = await instance.data.getInput(feedback.options.input)
+        const input = instance.data.getInput(feedback.options.input)
         const inputState = checkInput(input)
 
         if (inputState === 1) {
@@ -198,7 +198,7 @@ export const getTallyFeedbacks = (instance: VMixInstance): CompanionFeedbackDefi
       ],
       callback: async (feedback) => {
         const inputOption = feedback.options.input
-        const input = await instance.data.getInput(inputOption)
+        const input = instance.data.getInput(inputOption)
 
         let preview = false
         let program = false

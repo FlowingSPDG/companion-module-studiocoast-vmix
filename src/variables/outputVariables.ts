@@ -56,7 +56,7 @@ export const outputValues = async (instance: VMixInstance): Promise<OutputVariab
 
     if (output.source === 'Input') {
       source = `Input${output.input}`
-      const input = await instance.data.getInput(output.input)
+      const input = instance.data.getInput(output.input)
       if (input) variables[`output_${output.number}_input_name`] = input?.shortTitle || input?.title
     } else if (output.source === 'Mix') {
       source = `Mix${output.mix + 1}`

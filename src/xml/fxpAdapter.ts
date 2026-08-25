@@ -1,5 +1,5 @@
 import { XMLParser } from 'fast-xml-parser'
-import { XmlParserAdapter } from './adapter'
+import type { XmlParserAdapter } from './adapter.js'
 
 export class FastXmlParserAdapter implements XmlParserAdapter {
   private parser: XMLParser

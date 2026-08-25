@@ -144,7 +144,7 @@ export const getGeneralFeedbacks = (instance: VMixInstance): CompanionFeedbackDe
           return output.mix + 1 === parseInt(mix, 10)
         } else if (feedback.options.type === 'Input' && output.source === 'Input') {
           const inputSelect = feedback.options.input
-          const input = await instance.data.getInput(inputSelect)
+          const input = instance.data.getInput(inputSelect)
           return input ? input.number === output.input : false
         } else {
           return output.source === feedback.options.type

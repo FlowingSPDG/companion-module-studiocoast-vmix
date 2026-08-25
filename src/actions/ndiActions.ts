@@ -40,7 +40,7 @@ export const getNDIActions = (instance: VMixInstance, sendBasicCommand: SendBasi
         },
       ],
       callback: async (action) => {
-        const input = await instance.data.getInput(action.options.input)
+        const input = instance.data.getInput(action.options.input)
 
         if (input === null) return
 

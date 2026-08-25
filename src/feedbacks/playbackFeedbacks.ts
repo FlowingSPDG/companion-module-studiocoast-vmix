@@ -39,7 +39,7 @@ export const getPlaybackFeedbacks = (instance: VMixInstance): CompanionFeedbackD
       defaultStyle: { color: 0x000000, bgcolor: 0xff0000 },
       callback: async (feedback) => {
         const inputOption = feedback.options.input
-        const input = await instance.data.getInput(inputOption)
+        const input = instance.data.getInput(inputOption)
 
         if (feedback.options.type === 'playing') {
           return input?.state === 'Running'
@@ -82,7 +82,7 @@ export const getPlaybackFeedbacks = (instance: VMixInstance): CompanionFeedbackD
       ],
       callback: async (feedback) => {
         const inputOption = feedback.options.input
-        const input = await instance.data.getInput(inputOption)
+        const input = instance.data.getInput(inputOption)
 
         if (!input || input.duration === 0) {
           return {}

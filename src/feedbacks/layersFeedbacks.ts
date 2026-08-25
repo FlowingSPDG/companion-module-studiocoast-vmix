@@ -30,11 +30,11 @@ export const getLayersFeedbacks = (instance: VMixInstance): CompanionFeedbackDef
       callback: async (feedback) => {
         if (instance.routingData.layer.destinationInput === null) return false
 
-        const selectInput = (await instance.data.getInput(instance.routingData.layer.destinationInput))?.key || ''
+        const selectInput = (instance.data.getInput(instance.routingData.layer.destinationInput))?.key || ''
         let inputID = feedback.options.input
         if (feedback.options.input === '0') inputID = instance.data.mix[0].preview.toString()
         if (feedback.options.input === '-1') inputID = instance.data.mix[0].program.toString()
-        const input = await instance.data.getInput(inputID)
+        const input = instance.data.getInput(inputID)
 
         return selectInput === input?.key
       },
@@ -66,9 +66,9 @@ export const getLayersFeedbacks = (instance: VMixInstance): CompanionFeedbackDef
       defaultStyle: { color: 0x000000, bgcolor: 0x0ffff00 },
       options: [options.input],
       callback: async (feedback) => {
-        const input = await instance.data.getInput(feedback.options.input)
+        const input = instance.data.getInput(feedback.options.input)
         if (instance.routingData.layer.destinationInput === null || instance.routingData.layer.destinationLayer === null || input === null) return false
-        const routingInput = await instance.data.getInput(instance.routingData.layer.destinationInput)
+        const routingInput = instance.data.getInput(instance.routingData.layer.destinationInput)
         const index = parseInt(instance.routingData.layer.destinationLayer) - 1
 
         if (routingInput !== null && routingInput.overlay) {
@@ -114,8 +114,8 @@ export const getLayersFeedbacks = (instance: VMixInstance): CompanionFeedbackDef
       ],
       callback: async (feedback) => {
         if (feedback.options.inputX === '' || feedback.options.inputY === '' || feedback.options.layer === '') return false
-        const inputX = await instance.data.getInput(feedback.options.inputX)
-        const inputY = await instance.data.getInput(feedback.options.inputY)
+        const inputX = instance.data.getInput(feedback.options.inputX)
+        const inputY = instance.data.getInput(feedback.options.inputY)
         const layer = parseInt(feedback.options.layer, 10)
 
         if (!inputX || !inputY || isNaN(layer)) return false

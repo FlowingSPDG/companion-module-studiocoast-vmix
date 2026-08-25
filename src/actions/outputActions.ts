@@ -337,7 +337,7 @@ export const getOutputActions = (instance: VMixInstance, sendBasicCommand: SendB
         let command = 'FUNCTION Snapshot'
 
         if (action.options.input !== '') {
-          const input = await instance.data.getInput(action.options.input)
+          const input = instance.data.getInput(action.options.input)
           if (input === null) return
           command = `FUNCTION SnapshotInput Input=${input.key}`
           if (action.options.value !== '') command += `&Value=${action.options.value}`

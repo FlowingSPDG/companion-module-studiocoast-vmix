@@ -62,13 +62,10 @@ If you'd like to support my work, you can sponsor me on [GitHub](https://github.
 
 Older patch notes available in [docs/patch_notes.md](./docs/patch_notes.md)
 
-## Benchmark (with optional Rust/WASM)
+## Benchmark
 
 1. Install dependencies
    - `yarn install --frozen-lockfile`
-2. (Optional) Build Rust/WASM parser
-   - Requires Rust toolchain and wasm-pack
-   - `wasm-pack build rust/vmix_xml --release --target nodejs --out-dir src/bench/wasm/pkg`
-3. Run benchmark
+2. Run benchmark
    - `yarn bench`
    - `BENCH_ITERS=500 BENCH_XML=bench-sample.xml yarn bench`
